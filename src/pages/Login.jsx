@@ -27,7 +27,7 @@ export default function Login() {
       });
 
       // 2. Ekstrak data dari jawaban Backend (Sesuai kamus API dari temen lo)
-      const { token, user } = response.data;
+      const { token, user } = response.data.data;
 
       // 3. Simpan Kunci (Token) dan Identitas (Role, Nama) di Browser
       localStorage.setItem('token', token);
