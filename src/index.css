@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  /* Ini pengganti custom colors dari file konfigurasi sebelumnya */
+  --color-primary: #1e3a8a;
+  --color-secondary: #10b981;
+  --color-danger: #ef4444;
+}
+
+body {
+  background-color: #f3f4f6;
+}
