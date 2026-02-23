@@ -7,6 +7,10 @@ export default function SidebarUI({ role }) {
 
   const isActive = (path) => location.pathname === path;
 
+  // === LOGIKA ROLE BARU ===
+  // Mengelompokkan semua jenis pegawai selain admin biar gampang
+  const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role);
+
   // Fungsi Logout
   const handleLogout = () => {
     localStorage.removeItem('userRole'); // Hapus sesi login
@@ -43,9 +47,9 @@ export default function SidebarUI({ role }) {
           )}
 
           {/* =========================================
-              MENU KHUSUS KARYAWAN
+              MENU KHUSUS PEGAWAI (PKWTT, PKWT, Magang, dll)
               ========================================= */}
-          {role === 'karyawan' && (
+          {isPegawai && (
             <>
               <Link to="/" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <Home size={20} /> Beranda Saya
@@ -65,7 +69,7 @@ export default function SidebarUI({ role }) {
             </>
           )}
 
-          {/* Menu Pengaturan (Bisa diakses keduanya) */}
+          {/* Menu Pengaturan (Bisa diakses Admin maupun semua jenis Pegawai) */}
           <Link to="/pengaturan" className={`flex items-center gap-3 p-3 rounded-lg transition-colors mt-4 border-t ${isActive('/pengaturan') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
             <Settings size={20} /> Pengaturan Akun
           </Link>

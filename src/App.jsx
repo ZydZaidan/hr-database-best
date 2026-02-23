@@ -12,6 +12,7 @@ import DocumentRequest from './pages/DocumentRequest';
 import Settings from './pages/Settings';
 import AdminApproval from './pages/AdminApproval';
 import EmployeeEditProfile from './pages/EmployeeEditProfile';
+import CompleteProfile from './pages/CompleteProfile';
 // --- BIKIN KOMPONEN SATPAM (PROTECTED ROUTE) ---
 // Fungsi ini bakal ngecek: "Ada role login nggak di browser?"
 const RequireAuth = ({ children }) => {
@@ -55,6 +56,7 @@ function App() {
           
           {/* Umum */}
           <Route path="pengaturan" element={<Settings />} />
+          <Route path="lengkapi-data" element={<CompleteProfile />} />
         </Route>
       </Routes>
     </BrowserRouter>
