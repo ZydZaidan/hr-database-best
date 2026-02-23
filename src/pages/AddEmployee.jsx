@@ -62,6 +62,9 @@ export default function AddEmployee() {
       jenjang_pendidikan: data.jenjang_pendidikan,
       nama_sekolah: data.nama_pendidikan,
       ipk_nilai: parseFloat(data.ipk) || 0, 
+      // 👇 INI DUA DATA BARU YANG DITAMBAHIN
+      tahun_lulus: data.tahun_lulus,
+      keterangan_lulus: data.keterangan_lulus,
       diklat_ptbest: data.diklat_pt_best || '-',
 
       // --- C. Karir & Talenta ---
@@ -114,7 +117,7 @@ export default function AddEmployee() {
             : 'Silakan isi data yang diperlukan untuk kelengkapan administrasi Anda.'}
         </p>
         
-        {/* Indikator Stepper Dirapetin untuk Form 2 Step */}
+        {/* Indikator Stepper */}
         <div className={`flex justify-between items-center relative px-4 mx-auto ${steps.length <= 2 ? 'max-w-lg' : 'w-full'}`}>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
           <div 
@@ -204,8 +207,8 @@ export default function AddEmployee() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Kontak Darurat</label>
-                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="08123.." />
+                    <label className="block text-sm font-medium mb-1">Kontak Darurat (Nama)</label>
+                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nama" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Hubungan</label>
@@ -241,6 +244,22 @@ export default function AddEmployee() {
                   <label className="block text-sm font-medium mb-1">Nama Institusi Pendidikan</label>
                   <input {...register('nama_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Universitas Indonesia" />
                 </div>
+                
+                {/* 👇 DUA FORM BARU DI SINI 👇 */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Tahun Lulus</label>
+                  <input type="number" {...register('tahun_lulus')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 2023" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Keterangan Kelulusan</label>
+                  <select {...register('keterangan_lulus')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="Lulus">Lulus (Sudah Lulus)</option>
+                    <option value="Sedang Menempuh">Sedang Menempuh (Belum Lulus)</option>
+                    <option value="Tidak Lulus">Tidak Lulus / Putus Studi</option>
+                  </select>
+                </div>
+                {/* 👆 ======================= 👆 */}
+
                 <div>
                   <label className="block text-sm font-medium mb-1">IPK / Nilai</label>
                   <input step="0.01" type="number" {...register('ipk')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 3.50" />
