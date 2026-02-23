@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AddEmployee() {
@@ -17,14 +17,14 @@ export default function AddEmployee() {
   const isAdmin = role === 'admin';
   const isPKWTT = role === 'pkwtt';
 
-  // Penyesuaian Step Dinamis berdasarkan Role
-  // Admin & PKWTT dapet 4 form. Sisanya dapet 2 form (A & D)
+  // Penyesuaian Step Dinamis: B dan E dipisah
   const steps = (isAdmin || isPKWTT) 
     ? [
         { id: 'A', title: 'Data Pribadi (A)', icon: User },
-        { id: 'B', title: 'Pendidikan & Kompetensi (B & E)', icon: BookOpen },
+        { id: 'B', title: 'Pendidikan (B)', icon: BookOpen },
         { id: 'C', title: 'Data Karir (C)', icon: Briefcase },
         { id: 'D', title: 'Data Finansial (D)', icon: Wallet },
+        { id: 'E', title: 'Kompetensi (E)', icon: Award },
       ]
     : [
         { id: 'A', title: 'Data Pribadi (A)', icon: User },
@@ -42,17 +42,14 @@ export default function AddEmployee() {
 
   //+++++++++++++++++++++++++++++++
   const onSubmit = (data) => {
-    // 1. Tampilkan loading
     const loadingToast = toast.loading('Memproses dan menyamakan data dengan Database...');
 
-    // 2. BIKIN PAYLOAD MAPPING (DTO)
     const payloadToBE = {
       // --- A. Data Pribadi & Identitas ---
       nama: data.nama,
       nik_ktp: data.nik_ktp,
       nik_karyawan: data.nik_karyawan,
       jenis_kelamin: data.jenis_kelamin,
-      // Gabung tempat dan tanggal lahir jadi 1 string "ttl"
       ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`, 
       agama: data.agama,
       no_hp: data.no_hp,
@@ -64,16 +61,14 @@ export default function AddEmployee() {
       // --- B. Pendidikan & Diklat ---
       jenjang_pendidikan: data.jenjang_pendidikan,
       nama_sekolah: data.nama_pendidikan,
-      // Pastikan IPK jadi tipe Float (Desimal)
       ipk_nilai: parseFloat(data.ipk) || 0, 
       diklat_ptbest: data.diklat_pt_best || '-',
 
       // --- C. Karir & Talenta ---
       status_pegawai: data.status_pegawai,
       level_grade: data.level_grade,
-      jabatan_structural: data.jabatan_struktural, // Penyesuaian huruf 'c'
+      jabatan_structural: data.jabatan_struktural,
       jenjang_karir_histori: data.jenjang_karir,
-      // Talenta diubah jadi JSON String
       talenta_history: JSON.stringify({
         "Sem I 2024": data.talenta_sem1 || "Standar",
         "Sem II 2024": data.talenta_sem2 || "Standar"
@@ -84,10 +79,8 @@ export default function AddEmployee() {
       nama_bank: data.nama_bank,
       no_rekening: data.nomor_rekening,
       npwp: data.npwp,
-      // Pastikan string angka diubah jadi Integer
       gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
       gaji_p2: parseInt(data.tunjangan_p2) || 0,
-      // THR dan Bonus dijumlahkan sesuai request BE
       thr_bonus: (parseInt(data.thr) || 0) + (parseInt(data.bonus) || 0),
       uang_cuti: parseInt(data.uang_cuti) || 0,
       bpjs_kesehatan: data.no_bpjs_kesehatan,
@@ -95,19 +88,16 @@ export default function AddEmployee() {
 
       // --- E. Kompetensi & Lain-lain ---
       brevet_pajak: data.kompetensi_brevet || '-',
-      // Seminar dan Bootcamp digabung pakai pemisah ( | )
       seminar_bootcamp_ext: `${data.kompetensi_seminar || '-'} | ${data.kompetensi_bootcamp || '-'}`,
       jurnal_publikasi: data.kompetensi_jurnal || '-',
-      kompetensi_lainnya: '-' // Default kosong kalau ngga ada inputannya
+      kompetensi_lainnya: '-' 
     };
 
-    // 3. Simulasi Kirim API (Nanti kita ganti pakai Axios)
     console.log("🔥 Payload Siap Tembak API:", payloadToBE);
     
     setTimeout(() => {
       toast.dismiss(loadingToast);
       toast.success(isAdmin ? `Berhasil! Data ${payloadToBE.nama} siap masuk database.` : `Profil Anda berhasil dilengkapi!`);
-      // Nanti setelah axios sukses, baru kita navigate
       navigate('/'); 
     }, 2000);
   };
@@ -115,7 +105,6 @@ export default function AddEmployee() {
   return (
     <div className="max-w-5xl mx-auto pb-10">
       <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border">
-        {/* Header disesuaikan dengan Role */}
         <h1 className="text-2xl font-bold mb-2 text-gray-800">
           {isAdmin ? 'Registrasi Karyawan Baru' : 'Lengkapi Data Diri Anda'}
         </h1>
@@ -125,8 +114,8 @@ export default function AddEmployee() {
             : 'Silakan isi data yang diperlukan untuk kelengkapan administrasi Anda.'}
         </p>
         
-        {/* Indikator Stepper */}
-        <div className="flex justify-between items-center relative px-4">
+        {/* Indikator Stepper Dirapetin untuk Form 2 Step */}
+        <div className={`flex justify-between items-center relative px-4 mx-auto ${steps.length <= 2 ? 'max-w-lg' : 'w-full'}`}>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
           <div 
             className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary transition-all duration-300 -z-10"
@@ -215,8 +204,8 @@ export default function AddEmployee() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Kontak Darurat (Nama)</label>
-                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nama" />
+                    <label className="block text-sm font-medium mb-1">Kontak Darurat</label>
+                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="08123.." />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Hubungan</label>
@@ -231,58 +220,34 @@ export default function AddEmployee() {
             </div>
           )}
 
-          {/* ================= STEP B: PENDIDIKAN & KOMPETENSI ================= */}
+          {/* ================= STEP B: PENDIDIKAN ================= */}
           {steps[currentStep].id === 'B' && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">B. Pendidikan</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Jenjang Pendidikan Terakhir</label>
-                    <select {...register('jenjang_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                      <option value="SD">SD</option>
-                      <option value="SMP">SMP</option>
-                      <option value="SMA">SMA/SMK</option>
-                      <option value="DIPLOMA">DIPLOMA</option>
-                      <option value="S1">S1</option>
-                      <option value="S2">S2</option>
-                      <option value="S3">S3</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nama Institusi Pendidikan</label>
-                    <input {...register('nama_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Universitas Indonesia" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">IPK / Nilai</label>
-                    <input step="0.01" type="number" {...register('ipk')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 3.50" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Diklat PT. Best</label>
-                    <input {...register('diklat_pt_best')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Riwayat diklat internal" />
-                  </div>
+            <div className="space-y-4 animate-fade-in">
+              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">B. Pendidikan</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Jenjang Pendidikan Terakhir</label>
+                  <select {...register('jenjang_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="SD">SD</option>
+                    <option value="SMP">SMP</option>
+                    <option value="SMA">SMA/SMK</option>
+                    <option value="DIPLOMA">DIPLOMA</option>
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                  </select>
                 </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">E. Kompetensi Eksternal</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Brevet Pajak</label>
-                    <input {...register('kompetensi_brevet')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ada/Tidak (Sebutkan levelnya)" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Riwayat Seminar</label>
-                    <input {...register('kompetensi_seminar')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan..." />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Riwayat Bootcamp</label>
-                    <input {...register('kompetensi_bootcamp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan..." />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Publikasi Jurnal</label>
-                    <input {...register('kompetensi_jurnal')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan jika ada..." />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nama Institusi Pendidikan</label>
+                  <input {...register('nama_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Universitas Indonesia" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">IPK / Nilai</label>
+                  <input step="0.01" type="number" {...register('ipk')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 3.50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Diklat PT. Best</label>
+                  <input {...register('diklat_pt_best')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Riwayat diklat internal" />
                 </div>
               </div>
             </div>
@@ -383,6 +348,31 @@ export default function AddEmployee() {
                     <label className="block text-sm font-medium mb-1">No. BPJS Ketenagakerjaan</label>
                     <input type="number" {...register('no_bpjs_ketenagakerjaan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= STEP E: KOMPETENSI EKSTERNAL ================= */}
+          {steps[currentStep].id === 'E' && (
+            <div className="space-y-4 animate-fade-in">
+              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">E. Kompetensi Eksternal</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Brevet Pajak</label>
+                  <input {...register('kompetensi_brevet')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ada/Tidak (Sebutkan levelnya)" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Riwayat Seminar</label>
+                  <input {...register('kompetensi_seminar')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Riwayat Bootcamp</label>
+                  <input {...register('kompetensi_bootcamp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Publikasi Jurnal</label>
+                  <input {...register('kompetensi_jurnal')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan jika ada..." />
                 </div>
               </div>
             </div>
