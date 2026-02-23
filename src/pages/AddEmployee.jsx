@@ -1,14 +1,25 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award } from 'lucide-react';
+import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AddEmployee() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   
-  const { register, handleSubmit, trigger} = useForm();
+  // Tambahan "control" dan defaultValues buat ngurusin inputan dinamis yang bisa ditambah-kurang
+  const { register, handleSubmit, trigger, control } = useForm({
+    defaultValues: {
+      karir_dinamis: [{ tahun: '', tipe: 'basic' }] // Default ada 1 baris pas pertama buka
+    }
+  });
+
+  // Fitur sakti buat nambahin array inputan
+  const { fields: karirFields, append: appendKarir, remove: removeKarir } = useFieldArray({
+    control,
+    name: "karir_dinamis"
+  });
 
   // ==========================================
   // LOGIKA PENGECEKAN ROLE
@@ -61,22 +72,16 @@ export default function AddEmployee() {
       // --- B. Pendidikan & Diklat ---
       jenjang_pendidikan: data.jenjang_pendidikan,
       nama_sekolah: data.nama_pendidikan,
-      ipk_nilai: parseFloat(data.ipk) || 0, 
-      // 👇 INI DUA DATA BARU YANG DITAMBAHIN
       tahun_lulus: data.tahun_lulus,
       keterangan_lulus: data.keterangan_lulus,
+      ipk_nilai: parseFloat(data.ipk) || 0, 
       diklat_ptbest: data.diklat_pt_best || '-',
 
-      // --- C. Karir & Talenta ---
-      status_pegawai: data.status_pegawai,
-      level_grade: data.level_grade,
+      // --- C. Karir & Kinerja ---
       jabatan_structural: data.jabatan_struktural,
-      jenjang_karir_histori: data.jenjang_karir,
-      talenta_history: JSON.stringify({
-        "Sem I 2024": data.talenta_sem1 || "Standar",
-        "Sem II 2024": data.talenta_sem2 || "Standar"
-      }),
       review_kpi: data.review_kpi,
+      // Array data periode karir di-ubah jadi teks JSON biar BE lu nerimanya gampang
+      riwayat_karir_dinamis: JSON.stringify(data.karir_dinamis), 
 
       // --- D. Finansial & Benefit ---
       nama_bank: data.nama_bank,
@@ -117,7 +122,7 @@ export default function AddEmployee() {
             : 'Silakan isi data yang diperlukan untuk kelengkapan administrasi Anda.'}
         </p>
         
-        {/* Indikator Stepper */}
+        {/* Indikator Stepper Dirapetin untuk Form 2 Step */}
         <div className={`flex justify-between items-center relative px-4 mx-auto ${steps.length <= 2 ? 'max-w-lg' : 'w-full'}`}>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
           <div 
@@ -245,7 +250,6 @@ export default function AddEmployee() {
                   <input {...register('nama_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Universitas Indonesia" />
                 </div>
                 
-                {/* 👇 DUA FORM BARU DI SINI 👇 */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Tahun Lulus</label>
                   <input type="number" {...register('tahun_lulus')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 2023" />
@@ -258,7 +262,6 @@ export default function AddEmployee() {
                     <option value="Tidak Lulus">Tidak Lulus / Putus Studi</option>
                   </select>
                 </div>
-                {/* 👆 ======================= 👆 */}
 
                 <div>
                   <label className="block text-sm font-medium mb-1">IPK / Nilai</label>
@@ -272,22 +275,12 @@ export default function AddEmployee() {
             </div>
           )}
 
-          {/* ================= STEP C: KARIR ================= */}
+          {/* ================= STEP C: KARIR & KINERJA ================= */}
           {steps[currentStep].id === 'C' && (
-            <div className="space-y-4 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">C. Karir & Kinerja</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status Pegawai</label>
-                  <select {...register('status_pegawai')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="PKWT">PKWT (Kontrak)</option>
-                    <option value="PKWTT">PKWTT (Tetap)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Level / Grade</label>
-                  <input {...register('level_grade')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Grade 3 / Staff" />
-                </div>
+            <div className="space-y-6 animate-fade-in">
+              <h3 className="text-lg font-semibold border-b pb-2 text-primary">C. Karir & Kinerja</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 <div>
                   <label className="block text-sm font-medium mb-1">Jabatan Struktural</label>
                   <input {...register('jabatan_struktural')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Posisi Saat Ini" />
@@ -296,22 +289,70 @@ export default function AddEmployee() {
                   <label className="block text-sm font-medium mb-1">Review Hasil KPI</label>
                   <input {...register('review_kpi')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Skor / Hasil evaluasi terakhir" />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Jenjang Karir (Histori)</label>
-                  <textarea {...register('jenjang_karir')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none h-20" placeholder="Ceritakan histori dari awal gabung PT. Best sampai sekarang..."></textarea>
+              </div>
+
+              {/* AREA FORM DINAMIS UNTUK PERIODE KARIR */}
+              <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
+                <div className="flex items-center justify-between mb-4 border-b pb-3">
+                  <h4 className="font-bold text-gray-700">Periode Karir Karyawan</h4>
+                  {/* TOMBOL PLUS ADA DI SINI */}
+                  <button 
+                    type="button" 
+                    onClick={() => appendKarir({ tahun: '', tipe: 'basic' })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300 shadow-sm"
+                  >
+                    <Plus size={16} /> Tambah Kolom
+                  </button>
                 </div>
-                <div className="md:col-span-2 border p-4 rounded-lg bg-gray-50">
-                  <label className="block text-sm font-bold mb-2 text-gray-700">Penilaian Talenta</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Semester I 2024</label>
-                      <input {...register('talenta_sem1')} defaultValue="Standar" className="w-full p-2 border rounded focus:ring-2 focus:ring-primary outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Semester II 2024</label>
-                      <input {...register('talenta_sem2')} defaultValue="Standar" className="w-full p-2 border rounded focus:ring-2 focus:ring-primary outline-none" />
-                    </div>
+
+                <div className="space-y-3">
+                  {/* Header Kolom (Biar jelas isinya apa) */}
+                  <div className="flex gap-3 px-1">
+                    <div className="w-10"></div> {/* Spacer buat tombol buang */}
+                    <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Tahun Periode</div>
+                    <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Tipe Kompetensi</div>
                   </div>
+
+                  {karirFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-center animate-fade-in">
+                      {/* Tombol Hapus (Kalo barisnya lebih dari 1) */}
+                      <div className="w-10 flex justify-center">
+                        {karirFields.length > 1 ? (
+                          <button 
+                            type="button" 
+                            onClick={() => removeKarir(index)}
+                            className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                            title="Hapus baris ini"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        ) : (
+                          <div className="w-8"></div>
+                        )}
+                      </div>
+
+                      {/* Input Tahun */}
+                      <div className="flex-1">
+                        <input 
+                          {...register(`karir_dinamis.${index}.tahun`, { required: true })} 
+                          className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white" 
+                          placeholder="Cth: 2022 - 2024" 
+                        />
+                      </div>
+
+                      {/* Dropdown Tipe */}
+                      <div className="flex-1">
+                        <select 
+                          {...register(`karir_dinamis.${index}.tipe`)} 
+                          className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white"
+                        >
+                          <option value="basic">Basic</option>
+                          <option value="spesific">Spesific</option>
+                          <option value="system">System</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
