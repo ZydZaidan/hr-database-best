@@ -8,17 +8,28 @@ export default function AddEmployee() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   
-  // Tambahan "control" dan defaultValues buat ngurusin inputan dinamis yang bisa ditambah-kurang
+  // Bikin list tahun otomatis dari 2024 sampai tahun sekarang (dinamis)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
+  
+  // Tambahan defaultValues buat form dinamis Karir dan Talenta
   const { register, handleSubmit, trigger, control } = useForm({
     defaultValues: {
-      karir_dinamis: [{ tahun: '', tipe: 'basic' }] // Default ada 1 baris pas pertama buka
+      karir_dinamis: [{ tahun: '', tipe: 'basic' }],
+      talenta_dinamis: [{ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' }]
     }
   });
 
-  // Fitur sakti buat nambahin array inputan
+  // Fitur array buat nambah-kurang baris Karir
   const { fields: karirFields, append: appendKarir, remove: removeKarir } = useFieldArray({
     control,
     name: "karir_dinamis"
+  });
+
+  // Fitur array buat nambah-kurang baris Talenta
+  const { fields: talentaFields, append: appendTalenta, remove: removeTalenta } = useFieldArray({
+    control,
+    name: "talenta_dinamis"
   });
 
   // ==========================================
@@ -28,7 +39,6 @@ export default function AddEmployee() {
   const isAdmin = role === 'admin';
   const isPKWTT = role === 'pkwtt';
 
-  // Penyesuaian Step Dinamis: B dan E dipisah
   const steps = (isAdmin || isPKWTT) 
     ? [
         { id: 'A', title: 'Data Pribadi (A)', icon: User },
@@ -80,8 +90,9 @@ export default function AddEmployee() {
       // --- C. Karir & Kinerja ---
       jabatan_structural: data.jabatan_struktural,
       review_kpi: data.review_kpi,
-      // Array data periode karir di-ubah jadi teks JSON biar BE lu nerimanya gampang
+      // Array data langsung dikonvert ke JSON String biar gampang ditangkep Backend
       riwayat_karir_dinamis: JSON.stringify(data.karir_dinamis), 
+      talenta_history: JSON.stringify(data.talenta_dinamis),
 
       // --- D. Finansial & Benefit ---
       nama_bank: data.nama_bank,
@@ -122,7 +133,7 @@ export default function AddEmployee() {
             : 'Silakan isi data yang diperlukan untuk kelengkapan administrasi Anda.'}
         </p>
         
-        {/* Indikator Stepper Dirapetin untuk Form 2 Step */}
+        {/* Indikator Stepper */}
         <div className={`flex justify-between items-center relative px-4 mx-auto ${steps.length <= 2 ? 'max-w-lg' : 'w-full'}`}>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
           <div 
@@ -295,27 +306,24 @@ export default function AddEmployee() {
               <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
                 <div className="flex items-center justify-between mb-4 border-b pb-3">
                   <h4 className="font-bold text-gray-700">Periode Karir Karyawan</h4>
-                  {/* TOMBOL PLUS ADA DI SINI */}
                   <button 
                     type="button" 
                     onClick={() => appendKarir({ tahun: '', tipe: 'basic' })}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300 shadow-sm"
                   >
-                    <Plus size={16} /> Tambah Kolom
+                    <Plus size={16} /> Tambah Karir
                   </button>
                 </div>
 
                 <div className="space-y-3">
-                  {/* Header Kolom (Biar jelas isinya apa) */}
                   <div className="flex gap-3 px-1">
-                    <div className="w-10"></div> {/* Spacer buat tombol buang */}
+                    <div className="w-10"></div>
                     <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Tahun Periode</div>
                     <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Tipe Kompetensi</div>
                   </div>
 
                   {karirFields.map((field, index) => (
                     <div key={field.id} className="flex gap-3 items-center animate-fade-in">
-                      {/* Tombol Hapus (Kalo barisnya lebih dari 1) */}
                       <div className="w-10 flex justify-center">
                         {karirFields.length > 1 ? (
                           <button 
@@ -331,7 +339,6 @@ export default function AddEmployee() {
                         )}
                       </div>
 
-                      {/* Input Tahun */}
                       <div className="flex-1">
                         <input 
                           {...register(`karir_dinamis.${index}.tahun`, { required: true })} 
@@ -340,7 +347,6 @@ export default function AddEmployee() {
                         />
                       </div>
 
-                      {/* Dropdown Tipe */}
                       <div className="flex-1">
                         <select 
                           {...register(`karir_dinamis.${index}.tipe`)} 
@@ -349,6 +355,80 @@ export default function AddEmployee() {
                           <option value="basic">Basic</option>
                           <option value="spesific">Spesific</option>
                           <option value="system">System</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AREA FORM DINAMIS UNTUK TALENTA */}
+              <div className="border border-blue-200 rounded-xl p-5 bg-blue-50/30 mt-6">
+                <div className="flex items-center justify-between mb-4 border-b border-blue-200 pb-3">
+                  <h4 className="font-bold text-blue-800">Penilaian Talenta</h4>
+                  <button 
+                    type="button" 
+                    onClick={() => appendTalenta({ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold text-sm border border-blue-300 shadow-sm"
+                  >
+                    <Plus size={16} /> Tambah Talenta
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex gap-3 px-1">
+                    <div className="w-10"></div>
+                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Semester</div>
+                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Tahun</div>
+                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Status</div>
+                  </div>
+
+                  {talentaFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-center animate-fade-in">
+                      <div className="w-10 flex justify-center">
+                        {talentaFields.length > 1 ? (
+                          <button 
+                            type="button" 
+                            onClick={() => removeTalenta(index)}
+                            className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                            title="Hapus baris ini"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        ) : (
+                          <div className="w-8"></div>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <select 
+                          {...register(`talenta_dinamis.${index}.semester`)} 
+                          className="w-full p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          <option value="Sem 1">Semester 1</option>
+                          <option value="Sem 2">Semester 2</option>
+                        </select>
+                      </div>
+
+                      <div className="flex-1">
+                        <select 
+                          {...register(`talenta_dinamis.${index}.tahun`)} 
+                          className="w-full p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex-1">
+                        <select 
+                          {...register(`talenta_dinamis.${index}.status`)} 
+                          className="w-full p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          <option value="Standar">Standar</option>
+                          <option value="Baik">Baik</option>
+                          <option value="Memuaskan">Memuaskan</option>
                         </select>
                       </div>
                     </div>
