@@ -43,7 +43,7 @@ export default function Dashboard() {
             </p>
           </div>
           <button 
-            onClick={() => navigate('/add-employee')} // Pastiin path-nya sesuai route lo
+            onClick={() => navigate('/tambah-karyawan')} // Pastiin path-nya sesuai route lo
             className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors whitespace-nowrap"
           >
             Isi Data Sekarang
