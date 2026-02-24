@@ -12,7 +12,7 @@ export default function AddEmployee() {
   const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
   
   // 1. SETUP DEFAULT VALUES UNTUK 5 FORM DINAMIS
-  const { register, handleSubmit, trigger, control } = useForm({
+  const { register, trigger, control } = useForm({
     defaultValues: {
       karir_dinamis: [{ tahun: '', tipe: 'basic' }],
       sk_dinamis: [{ nama_sk: 'PKWT', link_sk: '' }],
@@ -58,17 +58,36 @@ export default function AddEmployee() {
 
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
-  //+++++++++++++++++++++++++++++++
-  const onSubmit = (data) => {
-    const loadingToast = toast.loading('Memproses dan menyamakan data dengan Database...');
+  // ==========================================
+  // LOGIKA SUBMIT API (DARI BACKEND)
+  // ==========================================
+  const onSubmit = async (e) => {
+    e.preventDefault(); // Mencegah reload halaman
+    
+    // Validasi ulang sebelum submit akhir
+    const isValid = await trigger();
+    if (!isValid) {
+      toast.error("Ada data wajib yang belum diisi!");
+      return;
+    }
 
+    // Ambil semua data form manual karena kita handle submit di tombol
+    const formElement = e.target.closest('form');
+    const formData = new FormData(formElement);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Ambil data array dari useFieldArray (karena FormData ga nangkep array dengan rapi)
+    const currentValues = control._formValues; 
+
+    const loadingToast = toast.loading('Sedang mengirim data ke server Railway...');
+
+    // Mapping data agar sesuai dengan kolom Database Laravel
     const payloadToBE = {
-      // A. Data Pribadi (NIK KTP wajib, NIK Karyawan opsional)
       nama: data.nama,
-      nik_ktp: data.nik_ktp, 
-      nik_karyawan: data.nik_karyawan || '-', // Opsional
-      jenis_kelamin: data.jenis_kelamin,
-      ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`, 
+      nik_ktp: data.nik_ktp,
+      nik_karyawan: data.nik_karyawan || '-',
+      jenis_kelamin: data.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan',
+      ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`,
       agama: data.agama,
       no_hp: data.no_hp,
       status_ptkp: data.status_ptkp,
@@ -76,44 +95,61 @@ export default function AddEmployee() {
       hubungan_emergency: data.emergency_contact_hubungan,
       alamat_domisili: data.alamat_domisili,
 
-      // B. Pendidikan
       jenjang_pendidikan: data.jenjang_pendidikan,
       nama_sekolah: data.nama_pendidikan,
       tahun_lulus: data.tahun_lulus,
       keterangan_lulus: data.keterangan_lulus,
-      ipk_nilai: parseFloat(data.ipk) || 0, 
+      ipk_nilai: data.ipk,
       diklat_ptbest: data.diklat_pt_best || '-',
 
-      // C. Karir, SK, & Talenta (Di-JSON-kan semua)
       jabatan_structural: data.jabatan_struktural,
+      status_pegawai: "Internship", // Sesuai default dari BE
+      level_grade: "Basic",        // Sesuai default dari BE
       review_kpi: data.review_kpi,
-      riwayat_karir: JSON.stringify(data.karir_dinamis), 
-      sk_direksi: JSON.stringify(data.sk_dinamis),
-      riwayat_talenta: JSON.stringify(data.talenta_dinamis),
-      bukti_talenta: JSON.stringify(data.bukti_talenta_dinamis),
+      
+      // Mengirimkan Array mentah ke Laravel
+      jenjang_karir_json: currentValues.karir_dinamis,
+      sk_direksi_json: currentValues.sk_dinamis,
+      talenta_history_json: currentValues.talenta_dinamis,
+      bukti_talenta_json: currentValues.bukti_talenta_dinamis,
+      kompetensi_json: currentValues.kompetensi_dinamis,
 
-      // D. Finansial
       nama_bank: data.nama_bank,
       no_rekening: data.nomor_rekening,
       npwp: data.npwp,
-      gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
-      gaji_p2: parseInt(data.tunjangan_p2) || 0,
+      gaji_p1: data.gaji_pokok_p1,
+      gaji_p2: data.tunjangan_p2,
       thr_bonus: (parseInt(data.thr) || 0) + (parseInt(data.bonus) || 0),
-      uang_cuti: parseInt(data.uang_cuti) || 0,
+      uang_cuti: data.uang_cuti,
       bpjs_kesehatan: data.no_bpjs_kesehatan,
       bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
-
-      // E. Kompetensi Eksternal (Di-JSON-kan)
-      kompetensi_eksternal: JSON.stringify(data.kompetensi_dinamis)
     };
 
     console.log("🔥 Payload Siap Tembak API:", payloadToBE);
-    
-    setTimeout(() => {
-      toast.dismiss(loadingToast);
-      toast.success(isAdmin ? `Berhasil! Data ${payloadToBE.nama} siap masuk database.` : `Profil Anda berhasil dilengkapi!`);
-      navigate('/'); 
-    }, 2000);
+
+    try {
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/karyawan/save-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payloadToBE)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Data Berhasil Masuk ke Database Railway!', { id: loadingToast });
+        navigate('/');
+      } else {
+        console.error("Error dari Server:", result);
+        toast.error('Gagal simpan: ' + (result.message || 'Cek koneksi database'), { id: loadingToast });
+      }
+    } catch (error) {
+      console.error("Network Error:", error);
+      toast.error('Gagal menghubungi server Railway!', { id: loadingToast });
+    }
   };
 
   return (
@@ -155,7 +191,7 @@ export default function AddEmployee() {
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-sm border">
-        {/* MATIKAN FUNGSI SUBMIT BAWAAN HTML BIAR GAK NYELONONG */}
+        {/* Mencegah form submit default dari HTML */}
         <form onSubmit={(e) => e.preventDefault()}>
           
           {/* ================= STEP A: DATA PRIBADI ================= */}
@@ -570,7 +606,7 @@ export default function AddEmployee() {
             ) : (
               <button 
                 type="button" 
-                onClick={handleSubmit(onSubmit)} 
+                onClick={onSubmit} 
                 className="flex items-center gap-2 px-8 py-2 bg-secondary text-white rounded-lg hover:brightness-110 font-bold shadow-lg shadow-green-200 transition-all"
               >
                 <Save size={20} /> Simpan Semua Data
