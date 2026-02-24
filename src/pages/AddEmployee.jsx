@@ -59,12 +59,6 @@ export default function AddEmployee() {
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   //+++++++++++++++++++++++++++++++
-  // Fungsi buat matiin tombol Enter biar form nggak nyelonong submit
-  const checkKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
-  };
   const onSubmit = (data) => {
     const loadingToast = toast.loading('Memproses dan menyamakan data dengan Database...');
 
@@ -161,7 +155,8 @@ export default function AddEmployee() {
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-sm border">
-        <form onSubmit={handleSubmit(onSubmit)} onKeyDown={checkKeyDown}>
+        {/* MATIKAN FUNGSI SUBMIT BAWAAN HTML BIAR GAK NYELONONG */}
+        <form onSubmit={(e) => e.preventDefault()}>
           
           {/* ================= STEP A: DATA PRIBADI ================= */}
           {steps[currentStep].id === 'A' && (
@@ -177,7 +172,6 @@ export default function AddEmployee() {
                   <input type="number" {...register('nik_ktp', { required: true, minLength: 16 })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="16 Digit NIK KTP (Wajib)" />
                 </div>
                 <div>
-                  {/* NIK KARYAWAN SEKARANG OPSIONAL */}
                   <label className="block text-sm font-medium mb-1 text-gray-600">NIK Karyawan <span className="text-xs text-gray-400">(Kosongkan jika Magang)</span></label>
                   <input {...register('nik_karyawan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-gray-50" placeholder="ID Karyawan dari PT" />
                 </div>
@@ -574,7 +568,11 @@ export default function AddEmployee() {
                 Lanjut <ChevronRight size={20} />
               </button>
             ) : (
-              <button type="submit" className="flex items-center gap-2 px-8 py-2 bg-secondary text-white rounded-lg hover:brightness-110 font-bold shadow-lg shadow-green-200 transition-all">
+              <button 
+                type="button" 
+                onClick={handleSubmit(onSubmit)} 
+                className="flex items-center gap-2 px-8 py-2 bg-secondary text-white rounded-lg hover:brightness-110 font-bold shadow-lg shadow-green-200 transition-all"
+              >
                 <Save size={20} /> Simpan Semua Data
               </button>
             )}
