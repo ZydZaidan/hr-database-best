@@ -59,6 +59,12 @@ export default function AddEmployee() {
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   //+++++++++++++++++++++++++++++++
+  // Fungsi buat matiin tombol Enter biar form nggak nyelonong submit
+  const checkKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
   const onSubmit = (data) => {
     const loadingToast = toast.loading('Memproses dan menyamakan data dengan Database...');
 
@@ -155,7 +161,7 @@ export default function AddEmployee() {
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-sm border">
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} onKeyDown={checkKeyDown}>
           
           {/* ================= STEP A: DATA PRIBADI ================= */}
           {steps[currentStep].id === 'A' && (
