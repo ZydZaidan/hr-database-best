@@ -66,56 +66,60 @@ export default function AddEmployee() {
   const onSubmit = async (data) => {
     const loadingToast = toast.loading('Sedang mengirim data ke server Railway...');
 
-    // Mapping persis sama $fillable di KaryawanProfile Laravel
-    const payloadToBE = {
-      nik_ktp: data.nik_ktp,
-      nik_karyawan: data.nik_karyawan || '-',
-      nama: data.nama,
-      jenis_kelamin: data.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan',
-      ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`,
-      agama: data.agama,
-      no_hp: data.no_hp,
-      status_ptkp: data.status_ptkp,
-      emergency_contact: data.emergency_contact_nama,
-      hubungan_emergency: data.emergency_contact_hubungan,
-      alamat_domisili: data.alamat_domisili,
+    // Bikin mapping status otomatis berdasarkan role login
+  let otomatisStatusPegawai = 'Internship';
+  if (role === 'pkwt') otomatisStatusPegawai = 'PKWT';
+  if (role === 'pkwtt') otomatisStatusPegawai = 'PKWTT';
+  if (role === 'thl') otomatisStatusPegawai = 'THL';
+  if (role === 'konsultan') otomatisStatusPegawai = 'Konsultan';
 
-      jenjang_pendidikan: data.jenjang_pendidikan,
-      nama_sekolah: data.nama_pendidikan,
-      tahun_lulus: data.tahun_lulus,
-      keterangan_lulus: data.keterangan_lulus,
-      ipk_nilai: parseFloat(data.ipk) || 0,
-      diklat_ptbest: data.diklat_pt_best || '-',
+  // Mapping persis sama $fillable di KaryawanProfile Laravel
+  const payloadToBE = {
+    nik_ktp: data.nik_ktp,
+    nik_karyawan: data.nik_karyawan || '-',
+    nama: data.nama,
+    jenis_kelamin: data.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan',
+    ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`,
+    agama: data.agama,
+    no_hp: data.no_hp,
+    status_ptkp: data.status_ptkp,
+    emergency_contact: data.emergency_contact_nama,
+    hubungan_emergency: data.emergency_contact_hubungan,
+    alamat_domisili: data.alamat_domisili,
 
-      status_pegawai: data.status_pegawai || 'Internship', 
-      level_grade: data.level_grade || 'Basic', 
-      jabatan_structural: data.jabatan_struktural || '-', 
-      
-      // Data Array mentah 
-      jenjang_karir_json: data.karir_dinamis,
-      talenta_history_json: data.talenta_dinamis,
-      sk_direksi_json: data.sk_dinamis,
-      bukti_talenta_json: data.bukti_talenta_dinamis,
-      kompetensi_json: data.kompetensi_dinamis,
-      
-      review_kpi: data.review_kpi || '-',
+    // Step B (Bisa Kosong untuk Non-PKWTT)
+    jenjang_pendidikan: data.jenjang_pendidikan || null,
+    nama_sekolah: data.nama_pendidikan || null,
+    tahun_lulus: data.tahun_lulus || null,
+    keterangan_lulus: data.keterangan_lulus || null,
+    ipk_nilai: parseFloat(data.ipk) || 0,
+    diklat_ptbest: data.diklat_pt_best || '-',
 
-      nama_bank: data.nama_bank,
-      no_rekening: data.nomor_rekening,
-      npwp: data.npwp,
-      gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
-      gaji_p2: parseInt(data.tunjangan_p2) || 0,
-      
-      // 👇 INI YANG BARU DIUBAH (DIPISAH SESUAI MIGRATION) 👇
-      thr: parseInt(data.thr) || 0,
-      bonus: parseInt(data.bonus) || 0,
-      // 👆 ================================================ 👆
-
-      uang_cuti: parseInt(data.uang_cuti) || 0,
-      bpjs_kesehatan: data.no_bpjs_kesehatan,
-      bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
-    };
-
+    // Step C (Status otomatis diambil dari role login kalo nggak ngelewatin step ini)
+    status_pegawai: data.status_pegawai || otomatisStatusPegawai, 
+    level_grade: data.level_grade || '-', 
+    jabatan_structural: data.jabatan_struktural || '-', 
+    review_kpi: data.review_kpi || '-',
+    
+    // Data Array (Kasih default array kosong [] kalau undefined)
+    jenjang_karir_json: data.karir_dinamis || [],
+    talenta_history_json: data.talenta_dinamis || [],
+    sk_direksi_json: data.sk_dinamis || [],
+    bukti_talenta_json: data.bukti_talenta_dinamis || [],
+    kompetensi_json: data.kompetensi_dinamis || [],
+    
+    // Step D (Finansial - Semua isi)
+    nama_bank: data.nama_bank,
+    no_rekening: data.nomor_rekening,
+    npwp: data.npwp,
+    gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
+    gaji_p2: parseInt(data.tunjangan_p2) || 0,
+    thr: parseInt(data.thr) || 0,
+    bonus: parseInt(data.bonus) || 0,
+    uang_cuti: parseInt(data.uang_cuti) || 0,
+    bpjs_kesehatan: data.no_bpjs_kesehatan,
+    bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
+  };
     console.log("🔥 Payload Siap Tembak API:", payloadToBE);
 
     try {
