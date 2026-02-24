@@ -6,8 +6,8 @@ export default function Payslip() {
 // Data dummy slip gaji (Format disamakan dengan Backend)
   const [slipData] = useState({
     bulan: 'Februari 2026',
-    nama: 'Muh. Cholish',
-    nik_karyawan: '1234567890',
+    nama: 'M. Yazid Zaidan',
+    nik_karyawan: '-',
     jabatan_structural: 'Frontend Developer',
     pendapatan: {
       gaji_p1: 5000000,
