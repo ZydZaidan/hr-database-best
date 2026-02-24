@@ -1,36 +1,33 @@
 import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award, Plus, Trash2 } from 'lucide-react';
+import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award, Plus, Trash2, Link as LinkIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AddEmployee() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   
-  // Bikin list tahun otomatis dari 2024 sampai tahun sekarang (dinamis)
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
   
-  // Tambahan defaultValues buat form dinamis Karir dan Talenta
+  // 1. SETUP DEFAULT VALUES UNTUK 5 FORM DINAMIS
   const { register, handleSubmit, trigger, control } = useForm({
     defaultValues: {
       karir_dinamis: [{ tahun: '', tipe: 'basic' }],
-      talenta_dinamis: [{ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' }]
+      sk_dinamis: [{ nama_sk: 'PKWT', link_sk: '' }],
+      talenta_dinamis: [{ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' }],
+      bukti_talenta_dinamis: [{ tahun: '', link_bukti: '' }],
+      kompetensi_dinamis: [{ jenis: 'Brevet', link_sertifikat: '' }]
     }
   });
 
-  // Fitur array buat nambah-kurang baris Karir
-  const { fields: karirFields, append: appendKarir, remove: removeKarir } = useFieldArray({
-    control,
-    name: "karir_dinamis"
-  });
-
-  // Fitur array buat nambah-kurang baris Talenta
-  const { fields: talentaFields, append: appendTalenta, remove: removeTalenta } = useFieldArray({
-    control,
-    name: "talenta_dinamis"
-  });
+  // 2. DAFTARIN SEMUA FIELD ARRAY NYA
+  const { fields: karirFields, append: appendKarir, remove: removeKarir } = useFieldArray({ control, name: "karir_dinamis" });
+  const { fields: skFields, append: appendSk, remove: removeSk } = useFieldArray({ control, name: "sk_dinamis" });
+  const { fields: talentaFields, append: appendTalenta, remove: removeTalenta } = useFieldArray({ control, name: "talenta_dinamis" });
+  const { fields: buktiTalentaFields, append: appendBuktiTalenta, remove: removeBuktiTalenta } = useFieldArray({ control, name: "bukti_talenta_dinamis" });
+  const { fields: kompetensiFields, append: appendKompetensi, remove: removeKompetensi } = useFieldArray({ control, name: "kompetensi_dinamis" });
 
   // ==========================================
   // LOGIKA PENGECEKAN ROLE
@@ -41,15 +38,15 @@ export default function AddEmployee() {
 
   const steps = (isAdmin || isPKWTT) 
     ? [
-        { id: 'A', title: 'Data Pribadi (A)', icon: User },
-        { id: 'B', title: 'Pendidikan (B)', icon: BookOpen },
-        { id: 'C', title: 'Data Karir (C)', icon: Briefcase },
-        { id: 'D', title: 'Data Finansial (D)', icon: Wallet },
-        { id: 'E', title: 'Kompetensi (E)', icon: Award },
+        { id: 'A', title: 'Data Pribadi', icon: User },
+        { id: 'B', title: 'Pendidikan', icon: BookOpen },
+        { id: 'C', title: 'Karir & Talenta', icon: Briefcase },
+        { id: 'D', title: 'Finansial', icon: Wallet },
+        { id: 'E', title: 'Kompetensi', icon: Award },
       ]
     : [
-        { id: 'A', title: 'Data Pribadi (A)', icon: User },
-        { id: 'D', title: 'Data Finansial (D)', icon: Wallet },
+        { id: 'A', title: 'Data Pribadi', icon: User },
+        { id: 'D', title: 'Finansial', icon: Wallet },
       ];
 
   const nextStep = async () => {
@@ -66,10 +63,10 @@ export default function AddEmployee() {
     const loadingToast = toast.loading('Memproses dan menyamakan data dengan Database...');
 
     const payloadToBE = {
-      // --- A. Data Pribadi & Identitas ---
+      // A. Data Pribadi (NIK KTP wajib, NIK Karyawan opsional)
       nama: data.nama,
-      nik_ktp: data.nik_ktp,
-      nik_karyawan: data.nik_karyawan,
+      nik_ktp: data.nik_ktp, 
+      nik_karyawan: data.nik_karyawan || '-', // Opsional
       jenis_kelamin: data.jenis_kelamin,
       ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`, 
       agama: data.agama,
@@ -79,7 +76,7 @@ export default function AddEmployee() {
       hubungan_emergency: data.emergency_contact_hubungan,
       alamat_domisili: data.alamat_domisili,
 
-      // --- B. Pendidikan & Diklat ---
+      // B. Pendidikan
       jenjang_pendidikan: data.jenjang_pendidikan,
       nama_sekolah: data.nama_pendidikan,
       tahun_lulus: data.tahun_lulus,
@@ -87,14 +84,15 @@ export default function AddEmployee() {
       ipk_nilai: parseFloat(data.ipk) || 0, 
       diklat_ptbest: data.diklat_pt_best || '-',
 
-      // --- C. Karir & Kinerja ---
+      // C. Karir, SK, & Talenta (Di-JSON-kan semua)
       jabatan_structural: data.jabatan_struktural,
       review_kpi: data.review_kpi,
-      // Array data langsung dikonvert ke JSON String biar gampang ditangkep Backend
-      riwayat_karir_dinamis: JSON.stringify(data.karir_dinamis), 
-      talenta_history: JSON.stringify(data.talenta_dinamis),
+      riwayat_karir: JSON.stringify(data.karir_dinamis), 
+      sk_direksi: JSON.stringify(data.sk_dinamis),
+      riwayat_talenta: JSON.stringify(data.talenta_dinamis),
+      bukti_talenta: JSON.stringify(data.bukti_talenta_dinamis),
 
-      // --- D. Finansial & Benefit ---
+      // D. Finansial
       nama_bank: data.nama_bank,
       no_rekening: data.nomor_rekening,
       npwp: data.npwp,
@@ -105,11 +103,8 @@ export default function AddEmployee() {
       bpjs_kesehatan: data.no_bpjs_kesehatan,
       bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
 
-      // --- E. Kompetensi & Lain-lain ---
-      brevet_pajak: data.kompetensi_brevet || '-',
-      seminar_bootcamp_ext: `${data.kompetensi_seminar || '-'} | ${data.kompetensi_bootcamp || '-'}`,
-      jurnal_publikasi: data.kompetensi_jurnal || '-',
-      kompetensi_lainnya: '-' 
+      // E. Kompetensi Eksternal (Di-JSON-kan)
+      kompetensi_eksternal: JSON.stringify(data.kompetensi_dinamis)
     };
 
     console.log("🔥 Payload Siap Tembak API:", payloadToBE);
@@ -172,12 +167,23 @@ export default function AddEmployee() {
                   <input {...register('nama', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nama Lengkap" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">NIK Karyawan (Unik)</label>
-                  <input {...register('nik_karyawan', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="ID Karyawan dari PT" />
+                  <label className="block text-sm font-medium mb-1">NIK KTP <span className="text-red-500">*</span></label>
+                  <input type="number" {...register('nik_ktp', { required: true, minLength: 16 })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="16 Digit NIK KTP (Wajib)" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">NIK KTP</label>
-                  <input type="number" {...register('nik_ktp', { required: true, minLength: 16 })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="16 Digit NIK KTP" />
+                  {/* NIK KARYAWAN SEKARANG OPSIONAL */}
+                  <label className="block text-sm font-medium mb-1 text-gray-600">NIK Karyawan <span className="text-xs text-gray-400">(Kosongkan jika Magang)</span></label>
+                  <input {...register('nik_karyawan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-gray-50" placeholder="ID Karyawan dari PT" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status PTKP</label>
+                  <select {...register('status_ptkp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="TK/0">TK/0 (Tidak Kawin, 0 Tanggungan)</option>
+                    <option value="K/0">K/0 (Kawin, 0 Tanggungan)</option>
+                    <option value="K/1">K/1 (Kawin, 1 Tanggungan)</option>
+                    <option value="K/2">K/2 (Kawin, 2 Tanggungan)</option>
+                    <option value="K/3">K/3 (Kawin, 3 Tanggungan)</option>
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -208,16 +214,6 @@ export default function AddEmployee() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Status PTKP</label>
-                  <select {...register('status_ptkp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="TK/0">TK/0 (Tidak Kawin, 0 Tanggungan)</option>
-                    <option value="K/0">K/0 (Kawin, 0 Tanggungan)</option>
-                    <option value="K/1">K/1 (Kawin, 1 Tanggungan)</option>
-                    <option value="K/2">K/2 (Kawin, 2 Tanggungan)</option>
-                    <option value="K/3">K/3 (Kawin, 3 Tanggungan)</option>
-                  </select>
-                </div>
-                <div>
                   <label className="block text-sm font-medium mb-1">No. Handphone</label>
                   <input type="number" {...register('no_hp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="08..." />
                 </div>
@@ -242,7 +238,7 @@ export default function AddEmployee() {
           {/* ================= STEP B: PENDIDIKAN ================= */}
           {steps[currentStep].id === 'B' && (
             <div className="space-y-4 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">B. Pendidikan</h3>
+              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">B. Pendidikan & Diklat Internal</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-medium mb-1">Jenjang Pendidikan Terakhir</label>
@@ -279,7 +275,7 @@ export default function AddEmployee() {
                   <input step="0.01" type="number" {...register('ipk')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 3.50" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Diklat PT. Best</label>
+                  <label className="block text-sm font-medium mb-1">Diklat PT. Best (Internal)</label>
                   <input {...register('diklat_pt_best')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Riwayat diklat internal" />
                 </div>
               </div>
@@ -289,7 +285,7 @@ export default function AddEmployee() {
           {/* ================= STEP C: KARIR & KINERJA ================= */}
           {steps[currentStep].id === 'C' && (
             <div className="space-y-6 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 text-primary">C. Karir & Kinerja</h3>
+              <h3 className="text-lg font-semibold border-b pb-2 text-primary">C. Karir & Talenta</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 <div>
@@ -302,139 +298,157 @@ export default function AddEmployee() {
                 </div>
               </div>
 
-              {/* AREA FORM DINAMIS UNTUK PERIODE KARIR */}
+              {/* 1. DINAMIS: JENJANG KARIR */}
               <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
                 <div className="flex items-center justify-between mb-4 border-b pb-3">
-                  <h4 className="font-bold text-gray-700">Periode Karir Karyawan</h4>
-                  <button 
-                    type="button" 
-                    onClick={() => appendKarir({ tahun: '', tipe: 'basic' })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300 shadow-sm"
-                  >
+                  <h4 className="font-bold text-gray-700">Jenjang Karir</h4>
+                  <button type="button" onClick={() => appendKarir({ tahun: '', tipe: 'basic' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300">
                     <Plus size={16} /> Tambah Karir
                   </button>
                 </div>
-
                 <div className="space-y-3">
                   <div className="flex gap-3 px-1">
                     <div className="w-10"></div>
-                    <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Tahun Periode</div>
-                    <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Tipe Kompetensi</div>
+                    <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Rentang Tahun</div>
+                    <div className="flex-1 text-xs font-bold text-gray-500 uppercase">Level / Grade</div>
                   </div>
-
                   {karirFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center animate-fade-in">
+                    <div key={field.id} className="flex gap-3 items-center">
                       <div className="w-10 flex justify-center">
-                        {karirFields.length > 1 ? (
-                          <button 
-                            type="button" 
-                            onClick={() => removeKarir(index)}
-                            className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-                            title="Hapus baris ini"
-                          >
+                        {karirFields.length > 1 && (
+                          <button type="button" onClick={() => removeKarir(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
                             <Trash2 size={18} />
                           </button>
-                        ) : (
-                          <div className="w-8"></div>
                         )}
                       </div>
+                      <input {...register(`karir_dinamis.${index}.tahun`)} className="flex-1 p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white" placeholder="Cth: 2020 - 2022" />
+                      <select {...register(`karir_dinamis.${index}.tipe`)} className="flex-1 p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
+                        <option value="Basic">Basic</option>
+                        <option value="Spesific">Spesific</option>
+                        <option value="System">System</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                      <div className="flex-1">
-                        <input 
-                          {...register(`karir_dinamis.${index}.tahun`, { required: true })} 
-                          className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white" 
-                          placeholder="Cth: 2022 - 2024" 
-                        />
+              {/* 2. DINAMIS: SK DIREKSI */}
+              <div className="border border-orange-200 rounded-xl p-5 bg-orange-50/30">
+                <div className="flex items-center justify-between mb-4 border-b border-orange-200 pb-3">
+                  <h4 className="font-bold text-orange-800">SK Direksi</h4>
+                  <button type="button" onClick={() => appendSk({ nama_sk: 'PKWT', link_sk: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors font-semibold text-sm border border-orange-300">
+                    <Plus size={16} /> Tambah SK
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex gap-3 px-1">
+                    <div className="w-10"></div>
+                    <div className="flex-1 text-xs font-bold text-orange-600 uppercase">Nama SK</div>
+                    <div className="flex-1 text-xs font-bold text-orange-600 uppercase">No. SK & Link GDrive</div>
+                  </div>
+                  {skFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-center">
+                      <div className="w-10 flex justify-center">
+                        {skFields.length > 1 && (
+                          <button type="button" onClick={() => removeSk(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
-
-                      <div className="flex-1">
-                        <select 
-                          {...register(`karir_dinamis.${index}.tipe`)} 
-                          className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white"
-                        >
-                          <option value="basic">Basic</option>
-                          <option value="spesific">Spesific</option>
-                          <option value="system">System</option>
-                        </select>
+                      <select {...register(`sk_dinamis.${index}.nama_sk`)} className="flex-1 p-2.5 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white">
+                        <option value="PKWT">PKWT</option>
+                        <option value="PKWTT">PKWTT</option>
+                        <option value="Promosi">Promosi / Mutasi</option>
+                      </select>
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <LinkIcon size={16} className="text-gray-400" />
+                        </div>
+                        <input {...register(`sk_dinamis.${index}.link_sk`)} className="w-full pl-9 p-2.5 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white" placeholder="drive.google.com/..." />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* AREA FORM DINAMIS UNTUK TALENTA */}
-              <div className="border border-blue-200 rounded-xl p-5 bg-blue-50/30 mt-6">
+              {/* 3. DINAMIS: PENILAIAN TALENTA */}
+              <div className="border border-blue-200 rounded-xl p-5 bg-blue-50/30">
                 <div className="flex items-center justify-between mb-4 border-b border-blue-200 pb-3">
                   <h4 className="font-bold text-blue-800">Penilaian Talenta</h4>
-                  <button 
-                    type="button" 
-                    onClick={() => appendTalenta({ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold text-sm border border-blue-300 shadow-sm"
-                  >
+                  <button type="button" onClick={() => appendTalenta({ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold text-sm border border-blue-300">
                     <Plus size={16} /> Tambah Talenta
                   </button>
                 </div>
-
                 <div className="space-y-3">
                   <div className="flex gap-3 px-1">
                     <div className="w-10"></div>
-                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Semester</div>
-                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Tahun</div>
-                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Status</div>
+                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Semester & Tahun</div>
+                    <div className="flex-1 text-xs font-bold text-blue-600 uppercase">Nilai</div>
                   </div>
-
                   {talentaFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center animate-fade-in">
+                    <div key={field.id} className="flex gap-3 items-center">
                       <div className="w-10 flex justify-center">
-                        {talentaFields.length > 1 ? (
-                          <button 
-                            type="button" 
-                            onClick={() => removeTalenta(index)}
-                            className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-                            title="Hapus baris ini"
-                          >
+                        {talentaFields.length > 1 && (
+                          <button type="button" onClick={() => removeTalenta(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
                             <Trash2 size={18} />
                           </button>
-                        ) : (
-                          <div className="w-8"></div>
                         )}
                       </div>
-
-                      <div className="flex-1">
-                        <select 
-                          {...register(`talenta_dinamis.${index}.semester`)} 
-                          className="w-full p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                          <option value="Sem 1">Semester 1</option>
-                          <option value="Sem 2">Semester 2</option>
+                      <div className="flex-1 flex gap-2">
+                        <select {...register(`talenta_dinamis.${index}.semester`)} className="w-1/2 p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                          <option value="Sem 1">Sem 1</option>
+                          <option value="Sem 2">Sem 2</option>
+                        </select>
+                        <select {...register(`talenta_dinamis.${index}.tahun`)} className="w-1/2 p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                          {years.map(year => (<option key={year} value={year}>{year}</option>))}
                         </select>
                       </div>
+                      <select {...register(`talenta_dinamis.${index}.status`)} className="flex-1 p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <option value="Optimal">Optimal</option>
+                        <option value="Potensial">Potensial</option>
+                        <option value="Standar">Standar</option>
+                        <option value="Kurang">Kurang</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                      <div className="flex-1">
-                        <select 
-                          {...register(`talenta_dinamis.${index}.tahun`)} 
-                          className="w-full p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                          {years.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </select>
+              {/* 4. DINAMIS: BUKTI TALENTA */}
+              <div className="border border-purple-200 rounded-xl p-5 bg-purple-50/30">
+                <div className="flex items-center justify-between mb-4 border-b border-purple-200 pb-3">
+                  <h4 className="font-bold text-purple-800">Bukti Talenta</h4>
+                  <button type="button" onClick={() => appendBuktiTalenta({ tahun: '', link_bukti: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-semibold text-sm border border-purple-300">
+                    <Plus size={16} /> Tambah Bukti
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex gap-3 px-1">
+                    <div className="w-10"></div>
+                    <div className="flex-1 text-xs font-bold text-purple-600 uppercase">Rentang Tahun</div>
+                    <div className="flex-1 text-xs font-bold text-purple-600 uppercase">Link GDrive Bukti</div>
+                  </div>
+                  {buktiTalentaFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-center">
+                      <div className="w-10 flex justify-center">
+                        {buktiTalentaFields.length > 1 && (
+                          <button type="button" onClick={() => removeBuktiTalenta(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
-
-                      <div className="flex-1">
-                        <select 
-                          {...register(`talenta_dinamis.${index}.status`)} 
-                          className="w-full p-2.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                          <option value="Standar">Standar</option>
-                          <option value="Baik">Baik</option>
-                          <option value="Memuaskan">Memuaskan</option>
-                        </select>
+                      <input {...register(`bukti_talenta_dinamis.${index}.tahun`)} className="flex-1 p-2.5 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white" placeholder="Cth: 2023 - 2024" />
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <LinkIcon size={16} className="text-gray-400" />
+                        </div>
+                        <input {...register(`bukti_talenta_dinamis.${index}.link_bukti`)} className="w-full pl-9 p-2.5 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white" placeholder="drive.google.com/..." />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
+
             </div>
           )}
 
@@ -497,22 +511,45 @@ export default function AddEmployee() {
           {steps[currentStep].id === 'E' && (
             <div className="space-y-4 animate-fade-in">
               <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">E. Kompetensi Eksternal</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Brevet Pajak</label>
-                  <input {...register('kompetensi_brevet')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ada/Tidak (Sebutkan levelnya)" />
+              
+              {/* 5. DINAMIS: KOMPETENSI */}
+              <div className="border border-teal-200 rounded-xl p-5 bg-teal-50/30">
+                <div className="flex items-center justify-between mb-4 border-b border-teal-200 pb-3">
+                  <h4 className="font-bold text-teal-800">Sertifikat / Kompetensi</h4>
+                  <button type="button" onClick={() => appendKompetensi({ jenis: 'Brevet', link_sertifikat: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors font-semibold text-sm border border-teal-300">
+                    <Plus size={16} /> Tambah Kompetensi
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Riwayat Seminar</label>
-                  <input {...register('kompetensi_seminar')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Riwayat Bootcamp</label>
-                  <input {...register('kompetensi_bootcamp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Publikasi Jurnal</label>
-                  <input {...register('kompetensi_jurnal')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Sebutkan jika ada..." />
+                <div className="space-y-3">
+                  <div className="flex gap-3 px-1">
+                    <div className="w-10"></div>
+                    <div className="flex-1 text-xs font-bold text-teal-600 uppercase">Jenis Kompetensi</div>
+                    <div className="flex-1 text-xs font-bold text-teal-600 uppercase">Link GDrive Sertifikat</div>
+                  </div>
+                  {kompetensiFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-center">
+                      <div className="w-10 flex justify-center">
+                        {kompetensiFields.length > 1 && (
+                          <button type="button" onClick={() => removeKompetensi(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                      <select {...register(`kompetensi_dinamis.${index}.jenis`)} className="flex-1 p-2.5 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none bg-white">
+                        <option value="Brevet Pajak">Brevet Pajak</option>
+                        <option value="Bootcamp IT">Bootcamp IT</option>
+                        <option value="Seminar HR">Seminar HR / Leadership</option>
+                        <option value="Jurnal Publikasi">Jurnal Publikasi</option>
+                        <option value="Sertifikasi Lainnya">Sertifikasi Lainnya</option>
+                      </select>
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <LinkIcon size={16} className="text-gray-400" />
+                        </div>
+                        <input {...register(`kompetensi_dinamis.${index}.link_sertifikat`)} className="w-full pl-9 p-2.5 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none bg-white" placeholder="drive.google.com/..." />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
