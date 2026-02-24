@@ -11,14 +11,14 @@ export default function AddEmployee() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
   
-  // 1. SETUP DEFAULT VALUES UNTUK 5 FORM DINAMIS
-  const { register, trigger, control } = useForm({
+  // 1. SETUP DEFAULT VALUES (Nambahin handleSubmit di mari)
+  const { register, trigger, control, handleSubmit } = useForm({
     defaultValues: {
-      karir_dinamis: [{ tahun: '', tipe: 'basic' }],
+      karir_dinamis: [{ tahun: '', tipe: 'Basic' }],
       sk_dinamis: [{ nama_sk: 'PKWT', link_sk: '' }],
       talenta_dinamis: [{ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' }],
       bukti_talenta_dinamis: [{ tahun: '', link_bukti: '' }],
-      kompetensi_dinamis: [{ jenis: 'Brevet', link_sertifikat: '' }]
+      kompetensi_dinamis: [{ jenis: 'Brevet Pajak', link_sertifikat: '' }]
     }
   });
 
@@ -53,39 +53,24 @@ export default function AddEmployee() {
     const isValid = await trigger(); 
     if (isValid) {
       setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+    } else {
+      toast.error('Ada data wajib yang belum diisi!');
     }
   };
 
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   // ==========================================
-  // LOGIKA SUBMIT API (DARI BACKEND)
+  // LOGIKA SUBMIT API 100% SESUAI BE LARAVEL
   // ==========================================
-  const onSubmit = async (e) => {
-    e.preventDefault(); // Mencegah reload halaman
-    
-    // Validasi ulang sebelum submit akhir
-    const isValid = await trigger();
-    if (!isValid) {
-      toast.error("Ada data wajib yang belum diisi!");
-      return;
-    }
-
-    // Ambil semua data form manual karena kita handle submit di tombol
-    const formElement = e.target.closest('form');
-    const formData = new FormData(formElement);
-    const data = Object.fromEntries(formData.entries());
-    
-    // Ambil data array dari useFieldArray (karena FormData ga nangkep array dengan rapi)
-    const currentValues = control._formValues; 
-
+  const onSubmit = async (data) => {
     const loadingToast = toast.loading('Sedang mengirim data ke server Railway...');
 
-    // Mapping data agar sesuai dengan kolom Database Laravel
+    // Mapping persis sama $fillable di KaryawanProfile Laravel
     const payloadToBE = {
-      nama: data.nama,
       nik_ktp: data.nik_ktp,
       nik_karyawan: data.nik_karyawan || '-',
+      nama: data.nama,
       jenis_kelamin: data.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan',
       ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`,
       agama: data.agama,
@@ -99,28 +84,29 @@ export default function AddEmployee() {
       nama_sekolah: data.nama_pendidikan,
       tahun_lulus: data.tahun_lulus,
       keterangan_lulus: data.keterangan_lulus,
-      ipk_nilai: data.ipk,
+      ipk_nilai: parseFloat(data.ipk) || 0,
       diklat_ptbest: data.diklat_pt_best || '-',
 
-      jabatan_structural: data.jabatan_struktural,
-      status_pegawai: "Internship", // Sesuai default dari BE
-      level_grade: "Basic",        // Sesuai default dari BE
-      review_kpi: data.review_kpi,
+      status_pegawai: data.status_pegawai || 'Internship', 
+      level_grade: data.level_grade || 'Basic', 
+      jabatan_structural: data.jabatan_struktural || '-', // Perhatikan typo BE: structural pake 'c'
       
-      // Mengirimkan Array mentah ke Laravel
-      jenjang_karir_json: currentValues.karir_dinamis,
-      sk_direksi_json: currentValues.sk_dinamis,
-      talenta_history_json: currentValues.talenta_dinamis,
-      bukti_talenta_json: currentValues.bukti_talenta_dinamis,
-      kompetensi_json: currentValues.kompetensi_dinamis,
+      // Data Array mentah (BE udah nanganin JSON cast-nya)
+      jenjang_karir_json: data.karir_dinamis,
+      talenta_history_json: data.talenta_dinamis,
+      sk_direksi_json: data.sk_dinamis,
+      bukti_talenta_json: data.bukti_talenta_dinamis,
+      kompetensi_json: data.kompetensi_dinamis,
+      
+      review_kpi: data.review_kpi || '-',
 
       nama_bank: data.nama_bank,
       no_rekening: data.nomor_rekening,
       npwp: data.npwp,
-      gaji_p1: data.gaji_pokok_p1,
-      gaji_p2: data.tunjangan_p2,
+      gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
+      gaji_p2: parseInt(data.tunjangan_p2) || 0,
       thr_bonus: (parseInt(data.thr) || 0) + (parseInt(data.bonus) || 0),
-      uang_cuti: data.uang_cuti,
+      uang_cuti: parseInt(data.uang_cuti) || 0,
       bpjs_kesehatan: data.no_bpjs_kesehatan,
       bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
     };
@@ -134,7 +120,7 @@ export default function AddEmployee() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(payloadToBE)
+        body: JSON.stringify(payloadToBE) // Stringify keseluruhan body biar fetch API nya sah
       });
 
       const result = await response.json();
@@ -191,8 +177,8 @@ export default function AddEmployee() {
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-sm border">
-        {/* Mencegah form submit default dari HTML */}
-        <form onSubmit={(e) => e.preventDefault()}>
+        {/* MATIIN FUNGSI ENTER BAWAAN BIAR GAK NYELONONG (onKeyDown) */}
+        <form onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}>
           
           {/* ================= STEP A: DATA PRIBADI ================= */}
           {steps[currentStep].id === 'A' && (
@@ -200,7 +186,7 @@ export default function AddEmployee() {
               <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">A. Data Pribadi (Induk)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Nama Lengkap</label>
+                  <label className="block text-sm font-medium mb-1">Nama Lengkap <span className="text-red-500">*</span></label>
                   <input {...register('nama', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nama Lengkap" />
                 </div>
                 <div>
@@ -208,7 +194,7 @@ export default function AddEmployee() {
                   <input type="number" {...register('nik_ktp', { required: true, minLength: 16 })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="16 Digit NIK KTP (Wajib)" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-600">NIK Karyawan <span className="text-xs text-gray-400">(Kosongkan jika Magang)</span></label>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">NIK Karyawan <span className="text-xs text-gray-400">(Opsional)</span></label>
                   <input {...register('nik_karyawan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-gray-50" placeholder="ID Karyawan dari PT" />
                 </div>
                 <div>
@@ -325,6 +311,18 @@ export default function AddEmployee() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 <div>
+                  <label className="block text-sm font-medium mb-1">Status Pegawai</label>
+                  <select {...register('status_pegawai')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="PKWT">PKWT (Kontrak)</option>
+                    <option value="PKWTT">PKWTT (Tetap)</option>
+                    <option value="Internship">Internship (Magang)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Level / Grade</label>
+                  <input {...register('level_grade')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Grade 3 / Staff" />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Jabatan Struktural</label>
                   <input {...register('jabatan_struktural')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Posisi Saat Ini" />
                 </div>
@@ -338,7 +336,7 @@ export default function AddEmployee() {
               <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
                 <div className="flex items-center justify-between mb-4 border-b pb-3">
                   <h4 className="font-bold text-gray-700">Jenjang Karir</h4>
-                  <button type="button" onClick={() => appendKarir({ tahun: '', tipe: 'basic' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300">
+                  <button type="button" onClick={() => appendKarir({ tahun: '', tipe: 'Basic' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300">
                     <Plus size={16} /> Tambah Karir
                   </button>
                 </div>
@@ -552,7 +550,7 @@ export default function AddEmployee() {
               <div className="border border-teal-200 rounded-xl p-5 bg-teal-50/30">
                 <div className="flex items-center justify-between mb-4 border-b border-teal-200 pb-3">
                   <h4 className="font-bold text-teal-800">Sertifikat / Kompetensi</h4>
-                  <button type="button" onClick={() => appendKompetensi({ jenis: 'Brevet', link_sertifikat: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors font-semibold text-sm border border-teal-300">
+                  <button type="button" onClick={() => appendKompetensi({ jenis: 'Brevet Pajak', link_sertifikat: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors font-semibold text-sm border border-teal-300">
                     <Plus size={16} /> Tambah Kompetensi
                   </button>
                 </div>
@@ -606,7 +604,7 @@ export default function AddEmployee() {
             ) : (
               <button 
                 type="button" 
-                onClick={onSubmit} 
+                onClick={handleSubmit(onSubmit)} // <<--- Tombol Sakti biar react-hook-form jalan
                 className="flex items-center gap-2 px-8 py-2 bg-secondary text-white rounded-lg hover:brightness-110 font-bold shadow-lg shadow-green-200 transition-all"
               >
                 <Save size={20} /> Simpan Semua Data
