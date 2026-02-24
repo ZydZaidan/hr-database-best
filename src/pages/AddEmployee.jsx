@@ -136,6 +136,9 @@ export default function AddEmployee() {
 
       if (response.ok) {
         toast.success('Data Berhasil Masuk ke Database Railway!', { id: loadingToast });
+
+        localStorage.setItem('isProfileComplete', 'true');
+
         navigate('/');
       } else {
         console.error("Error dari Server:", result);

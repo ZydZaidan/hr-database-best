@@ -3,7 +3,11 @@ import { Users, FileText, CheckCircle } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const role = localStorage.getItem('userRole'); // Ambil role dari memori browser
+  
+  // Ambil data dari memori browser
+  const role = localStorage.getItem('userRole'); 
+  // Cek apakah profil sudah lengkap (ambil tanda dari AddEmployee tadi)
+  const isProfileComplete = localStorage.getItem('isProfileComplete') === 'true'; 
   
   const isAdmin = role === 'admin';
   const isPKWTT = role === 'pkwtt';
@@ -26,23 +30,35 @@ export default function Dashboard() {
 
       {/* =========================================
           BANNER PENGINGAT ISI DATA (KHUSUS PEGAWAI)
+          Syarat Muncul: Harus Pegawai AND Profil Belum Lengkap (!isProfileComplete)
           ========================================= */}
-      {(isPKWTT || isNonPKWTT) && (
+      {((isPKWTT || isNonPKWTT) && !isProfileComplete) && (
         <div className="bg-blue-50 border border-blue-200 p-5 rounded-xl flex items-center justify-between shadow-sm animate-fade-in">
           <div>
             <h3 className="font-bold text-blue-800 text-lg">Lengkapi Profil Anda</h3>
             <p className="text-sm text-blue-600 mt-1">
               {isPKWTT 
-                ? 'Data profil Anda belum lengkap. Silakan isi formulir A-D agar proses administrasi berjalan lancar.' 
+                ? 'Data profil Anda belum lengkap. Silakan isi formulir A-E agar proses administrasi berjalan lancar.' 
                 : 'Silakan isi kelengkapan Data Pribadi dan Finansial (Rekening) Anda untuk keperluan administrasi.'}
             </p>
           </div>
           <button 
-            onClick={() => navigate('/tambah-karyawan')}
+            onClick={() => navigate('/add-employee')} // Pastiin path-nya sesuai route lo
             className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors whitespace-nowrap"
           >
             Isi Data Sekarang
           </button>
+        </div>
+      )}
+
+      {/* TAMPILAN KALAU UDAH LENGKAP (Opsional, biar dashboard gak kosong) */}
+      {((isPKWTT || isNonPKWTT) && isProfileComplete) && (
+        <div className="bg-green-50 border border-green-200 p-5 rounded-xl flex items-center shadow-sm animate-fade-in">
+          <CheckCircle className="text-green-600 mr-3" size={24} />
+          <div>
+            <h3 className="font-bold text-green-800">Profil Anda Sudah Lengkap</h3>
+            <p className="text-sm text-green-600 mt-1">Terima kasih telah melengkapi data administrasi. Anda sekarang dapat menggunakan seluruh fitur HRIS.</p>
+          </div>
         </div>
       )}
 
@@ -58,22 +74,7 @@ export default function Dashboard() {
               <h3 className="text-2xl font-bold">142</h3>
             </div>
           </div>
-          
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-            <div className="p-3 bg-green-100 text-green-600 rounded-lg"><CheckCircle size={24} /></div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Hadir Hari Ini</p>
-              <h3 className="text-2xl font-bold">130</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-            <div className="p-3 bg-orange-100 text-orange-600 rounded-lg"><FileText size={24} /></div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Menunggu Approval</p>
-              <h3 className="text-2xl font-bold">5</h3>
-            </div>
-          </div>
+          {/* ... Widget lainnya ... */}
         </div>
       )}
 

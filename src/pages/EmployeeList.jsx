@@ -1,22 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, Plus, FileSpreadsheet, Eye, Edit, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function EmployeeList() {
-// 1. Data Dummy (Sesuaikan key-nya dengan database Backend)
-  const [employees] = useState([
-    { id: 1, nama: 'Budi Santoso', nik_karyawan: '1234567890', jabatan_structural: 'Frontend Dev', status_pegawai: 'PKWTT' },
-    { id: 2, nama: 'Siti Aminah', nik_karyawan: '0987654321', jabatan_structural: 'UI/UX Designer', status_pegawai: 'PKWT' },
-    { id: 3, nama: 'Andi Pratama', nik_karyawan: '1122334455', jabatan_structural: 'Backend Dev', status_pegawai: 'PKWTT' },
-  ]);
-
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 2. Fungsi Filter Sederhana (Ganti .nik jadi .nik_karyawan)
-  const filteredEmployees = employees.filter((employee) =>
-    employee.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.nik_karyawan.includes(searchTerm)
-  );
+  // 1. FUNGSI NARIK DATA DARI API (BACKEND)
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/karyawan');
+      const result = await response.json();
+
+      if (response.ok) {
+        // Antisipasi format response dari BE (bisa aja { data: [...] } atau langsung array [...])
+        setEmployees(result.data || result);
+      } else {
+        toast.error('Gagal memuat data karyawan');
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error('Koneksi ke server terputus');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Jalanin fungsi fetch pas halaman pertama kali dibuka
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  // 2. FUNGSI FILTER SEARCH (Pencarian)
+  const filteredEmployees = employees.filter((employee) => {
+    const namaMatch = (employee.nama || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const nikMatch = (employee.nik_karyawan || '').includes(searchTerm) || (employee.nik_ktp || '').includes(searchTerm);
+    return namaMatch || nikMatch;
+  });
 
   return (
     <div className="space-y-6">
@@ -50,7 +73,7 @@ export default function EmployeeList() {
           </button>
           
           <Link 
-            to="/tambah-karyawan" 
+            to="/add-employee" // <-- Sesuaikan dengan route AddEmployee lo
             className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:brightness-110 transition-all w-full md:w-auto"
           >
             <Plus size={20} />
@@ -66,46 +89,63 @@ export default function EmployeeList() {
             <thead className="bg-gray-50 text-gray-600 font-medium border-b">
               <tr>
                 <th className="px-6 py-4">Nama Karyawan</th>
-                <th className="px-6 py-4">NIK</th>
+                <th className="px-6 py-4">NIK (KTP / Karyawan)</th>
                 <th className="px-6 py-4">Jabatan</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredEmployees.length > 0 ? (
+              {isLoading ? (
+                /* TAMPILAN LOADING */
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
+                    <div className="flex justify-center items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      Mengambil data dari server...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredEmployees.length > 0 ? (
+                /* TAMPILAN DATA KARYAWAN */
                 filteredEmployees.map((emp) => (
                   <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 font-medium text-gray-900">{emp.nama}</td>
-                      {/* Ubah 3 baris di bawah ini */}
-                      <td className="px-6 py-4 text-gray-500">{emp.nik_karyawan}</td>
-                      <td className="px-6 py-4 text-gray-500">{emp.jabatan_structural}</td>
+                      <td className="px-6 py-4 text-gray-500">
+                        <div className="flex flex-col">
+                          <span>{emp.nik_karyawan !== '-' ? emp.nik_karyawan : 'N/A'}</span>
+                          <span className="text-xs text-gray-400">{emp.nik_ktp}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500">{emp.jabatan_structural !== '-' ? emp.jabatan_structural : 'N/A'}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           emp.status_pegawai === 'PKWTT' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {emp.status_pegawai}                      
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        <button className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded-lg" title="Lihat Detail">
-                          <Eye size={18} />
-                        </button>
-                        <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Edit Data">
-                          <Edit size={18} />
-                        </button>
-                        <button className="p-2 text-gray-500 hover:text-danger hover:bg-red-50 rounded-lg" title="Hapus">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+                            ? 'bg-green-100 text-green-700' 
+                            : emp.status_pegawai === 'PKWT'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-yellow-100 text-yellow-700' // Magang / Konsultan
+                        }`}>
+                          {emp.status_pegawai}                      
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => toast('Otw dibikin bro halamannya! 🚧')} className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded-lg" title="Lihat Detail">
+                            <Eye size={18} />
+                          </button>
+                          <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Edit Data">
+                            <Edit size={18} />
+                          </button>
+                          <button className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Hapus">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
                   </tr>
                 ))
               ) : (
-                /* --- TAMPILAN JIKA DATA KOSONG --- */
+                /* TAMPILAN DATA KOSONG */
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-2">
@@ -120,11 +160,11 @@ export default function EmployeeList() {
         </div>
         
         {/* Pagination Dummy */}
-        <div className="px-6 py-4 border-t flex justify-between items-center text-sm text-gray-500">
-          <p>Menampilkan 1-3 dari 3 karyawan</p>
+        <div className="px-6 py-4 border-t flex justify-between items-center text-sm text-gray-500 bg-gray-50">
+          <p>Total data: {filteredEmployees.length} karyawan</p>
           <div className="flex gap-2">
-            <button className="px-3 py-1 border rounded hover:bg-gray-50" disabled>Previous</button>
-            <button className="px-3 py-1 border rounded hover:bg-gray-50" disabled>Next</button>
+            <button className="px-3 py-1 border bg-white rounded hover:bg-gray-100 transition-colors">Sebelumnya</button>
+            <button className="px-3 py-1 border bg-white rounded hover:bg-gray-100 transition-colors">Selanjutnya</button>
           </div>
         </div>
       </div>
