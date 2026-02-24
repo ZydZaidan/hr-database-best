@@ -61,7 +61,7 @@ export default function AddEmployee() {
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   // ==========================================
-  // LOGIKA SUBMIT API 100% SESUAI BE LARAVEL
+  // LOGIKA SUBMIT API 100% SESUAI BE LARAVEL BARU
   // ==========================================
   const onSubmit = async (data) => {
     const loadingToast = toast.loading('Sedang mengirim data ke server Railway...');
@@ -89,9 +89,9 @@ export default function AddEmployee() {
 
       status_pegawai: data.status_pegawai || 'Internship', 
       level_grade: data.level_grade || 'Basic', 
-      jabatan_structural: data.jabatan_struktural || '-', // Perhatikan typo BE: structural pake 'c'
+      jabatan_structural: data.jabatan_struktural || '-', 
       
-      // Data Array mentah (BE udah nanganin JSON cast-nya)
+      // Data Array mentah 
       jenjang_karir_json: data.karir_dinamis,
       talenta_history_json: data.talenta_dinamis,
       sk_direksi_json: data.sk_dinamis,
@@ -105,7 +105,12 @@ export default function AddEmployee() {
       npwp: data.npwp,
       gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
       gaji_p2: parseInt(data.tunjangan_p2) || 0,
-      thr_bonus: (parseInt(data.thr) || 0) + (parseInt(data.bonus) || 0),
+      
+      // 👇 INI YANG BARU DIUBAH (DIPISAH SESUAI MIGRATION) 👇
+      thr: parseInt(data.thr) || 0,
+      bonus: parseInt(data.bonus) || 0,
+      // 👆 ================================================ 👆
+
       uang_cuti: parseInt(data.uang_cuti) || 0,
       bpjs_kesehatan: data.no_bpjs_kesehatan,
       bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
@@ -120,7 +125,7 @@ export default function AddEmployee() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(payloadToBE) // Stringify keseluruhan body biar fetch API nya sah
+        body: JSON.stringify(payloadToBE) 
       });
 
       const result = await response.json();
@@ -604,7 +609,7 @@ export default function AddEmployee() {
             ) : (
               <button 
                 type="button" 
-                onClick={handleSubmit(onSubmit)} // <<--- Tombol Sakti biar react-hook-form jalan
+                onClick={handleSubmit(onSubmit)} 
                 className="flex items-center gap-2 px-8 py-2 bg-secondary text-white rounded-lg hover:brightness-110 font-bold shadow-lg shadow-green-200 transition-all"
               >
                 <Save size={20} /> Simpan Semua Data
