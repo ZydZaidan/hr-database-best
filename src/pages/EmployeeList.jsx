@@ -79,12 +79,12 @@ export default function EmployeeList() {
     navigate(`/edit-karyawan/${id}`);
   };
 
-  const handleDelete = async (id, nama) => {
+  const handleDelete = async (id, nama, nik_ktp) => {
     const isConfirm = window.confirm(`Yakin mau hapus data karyawan: ${nama}?`);
     if (isConfirm) {
       setEmployees(employees.filter(emp => emp.id !== id));
       try {
-        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/delete/${id}`, {
+        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/delete/${nik_ktp}`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });
