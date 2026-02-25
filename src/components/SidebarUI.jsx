@@ -9,8 +9,7 @@ export default function SidebarUI({ role }) {
 
   // === LOGIKA ROLE BARU ===
   // Mengelompokkan semua jenis pegawai selain admin biar gampang
-  const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role);
-
+const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role?.toLowerCase());
   // Fungsi Logout
   const handleLogout = () => {
     localStorage.removeItem('userRole'); // Hapus sesi login
