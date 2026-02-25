@@ -1,25 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
-import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award, Plus, Trash2, Link as LinkIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, BookOpen, Briefcase, Wallet, ChevronLeft, ChevronRight, Save, Award, Plus, Trash2, Link as LinkIcon, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function EditEmployee() {
+export default function EmployeeEditProfile() {
   const navigate = useNavigate();
-  // Ambil ID atau NIK_KTP dari URL (contoh: /edit-karyawan/1234567890)
-  const { id } = useParams(); 
-  
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // State khusus buat nentuin form ini full (5 step) atau cuma 2 step
-  // Otomatis berubah berdasarkan status pegawai dari database
-  const [isFullForm, setIsFullForm] = useState(true); 
-
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
-  
-  // 1. SETUP USE FORM
+
+  const nikKtp = localStorage.getItem('nik_ktp');
+  const role = localStorage.getItem('userRole') || '';
+  const isPKWTT = role === 'pkwtt';
+
   const { register, trigger, control, handleSubmit, reset } = useForm({
     defaultValues: {
       karir_dinamis: [],
@@ -30,96 +26,13 @@ export default function EditEmployee() {
     }
   });
 
-  // 2. DAFTARIN SEMUA FIELD ARRAY NYA
   const { fields: karirFields, append: appendKarir, remove: removeKarir } = useFieldArray({ control, name: "karir_dinamis" });
   const { fields: skFields, append: appendSk, remove: removeSk } = useFieldArray({ control, name: "sk_dinamis" });
   const { fields: talentaFields, append: appendTalenta, remove: removeTalenta } = useFieldArray({ control, name: "talenta_dinamis" });
   const { fields: buktiTalentaFields, append: appendBuktiTalenta, remove: removeBuktiTalenta } = useFieldArray({ control, name: "bukti_talenta_dinamis" });
   const { fields: kompetensiFields, append: appendKompetensi, remove: removeKompetensi } = useFieldArray({ control, name: "kompetensi_dinamis" });
 
-  // ==========================================
-  // AMBIL DATA LAMA DARI BACKEND
-  // ==========================================
-  useEffect(() => {
-    const fetchEmployeeData = async () => {
-      try {
-        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${id}`);
-        const result = await response.json();
-
-        if (response.ok) {
-          const emp = result.data || result;
-          
-          // Pecah TTL jadi tempat dan tanggal
-          const ttlSplit = emp.ttl ? emp.ttl.split(', ') : ['', ''];
-          
-          // Nentuin apakah ini form PKWTT atau form anak magang/THL
-          const isPegawaiTetap = (emp.status_pegawai === 'PKWTT' || emp.status_pegawai === 'PKWT');
-          setIsFullForm(isPegawaiTetap);
-
-          // Ngisi form otomatis pakai reset
-          reset({
-            nama: emp.nama,
-            nik_ktp: emp.nik_ktp,
-            nik_karyawan: emp.nik_karyawan !== '-' ? emp.nik_karyawan : '',
-            jenis_kelamin: emp.jenis_kelamin === 'Laki-laki' ? 'L' : 'P',
-            tempat_lahir: ttlSplit[0] || '',
-            tanggal_lahir: ttlSplit[1] || '',
-            agama: emp.agama,
-            no_hp: emp.no_hp,
-            status_ptkp: emp.status_ptkp,
-            emergency_contact_nama: emp.emergency_contact,
-            emergency_contact_hubungan: emp.hubungan_emergency,
-            alamat_domisili: emp.alamat_domisili,
-
-            jenjang_pendidikan: emp.jenjang_pendidikan,
-            nama_pendidikan: emp.nama_sekolah,
-            tahun_lulus: emp.tahun_lulus,
-            keterangan_lulus: emp.keterangan_lulus,
-            ipk: emp.ipk_nilai,
-            diklat_pt_best: emp.diklat_ptbest !== '-' ? emp.diklat_ptbest : '',
-
-            status_pegawai: emp.status_pegawai,
-            level_grade: emp.level_grade !== '-' ? emp.level_grade : '',
-            jabatan_struktural: emp.jabatan_structural !== '-' ? emp.jabatan_structural : '',
-            review_kpi: emp.review_kpi !== '-' ? emp.review_kpi : '',
-
-            // Data Dinamis JSON
-            karir_dinamis: emp.jenjang_karir_json || [],
-            sk_dinamis: emp.sk_direksi_json || [],
-            talenta_dinamis: emp.talenta_history_json || [],
-            bukti_talenta_dinamis: emp.bukti_talenta_json || [],
-            kompetensi_dinamis: emp.kompetensi_json || [],
-
-            nama_bank: emp.nama_bank,
-            nomor_rekening: emp.no_rekening,
-            npwp: emp.npwp,
-            gaji_pokok_p1: emp.gaji_p1,
-            tunjangan_p2: emp.gaji_p2,
-            thr: emp.thr,
-            bonus: emp.bonus,
-            uang_cuti: emp.uang_cuti,
-            no_bpjs_kesehatan: emp.bpjs_kesehatan,
-            no_bpjs_ketenagakerjaan: emp.bpjs_ketenagakerjaan,
-          });
-        } else {
-          toast.error('Data karyawan tidak ditemukan.');
-          navigate('/karyawan');
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Koneksi terputus saat memuat data.');
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchEmployeeData();
-  }, [id, reset, navigate]);
-
-  // ==========================================
-  // KONFIGURASI STEPPER
-  // ==========================================
-  const steps = isFullForm 
+  const steps = isPKWTT 
     ? [
         { id: 'A', title: 'Data Pribadi', icon: User },
         { id: 'B', title: 'Pendidikan', icon: BookOpen },
@@ -132,413 +45,184 @@ export default function EditEmployee() {
         { id: 'D', title: 'Finansial', icon: Wallet },
       ];
 
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      if (!nikKtp) { setIsLoading(false); return; }
+      try {
+        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${nikKtp}`);
+        const result = await response.json();
+        if (response.ok) {
+          const emp = result.data || result;
+          const ttlSplit = emp.ttl ? emp.ttl.split(', ') : ['', ''];
+          reset({
+            nama: emp.nama,
+            tempat_lahir: ttlSplit[0] || '',
+            tanggal_lahir: ttlSplit[1] || '',
+            no_hp: emp.no_hp,
+            status_ptkp: emp.status_ptkp,
+            alamat_domisili: emp.alamat_domisili,
+            nama_bank: emp.nama_bank,
+            nomor_rekening: emp.no_rekening,
+            karir_dinamis: emp.jenjang_karir_json || [],
+            sk_dinamis: emp.sk_direksi_json || [],
+            talenta_dinamis: emp.talenta_history_json || [],
+            bukti_talenta_dinamis: emp.bukti_talenta_json || [],
+            kompetensi_dinamis: emp.kompetensi_json || [],
+          });
+        }
+      } catch (error) { console.error(error); } finally { setIsLoading(false); }
+    };
+    fetchEmployeeData();
+  }, [nikKtp, reset]);
+
   const nextStep = async () => {
     const isValid = await trigger(); 
-    if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-    } else {
-      toast.error('Ada isian wajib yang belum lengkap!');
-    }
+    if (isValid) setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
-  const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
-
-  // ==========================================
-  // LOGIKA UPDATE API (KIRIM DATA KE BE)
-  // ==========================================
   const onSubmit = async (data) => {
-    const loadingToast = toast.loading('Menyimpan perubahan data...');
-
-    // Mapping persis sama kodingan save lo
-    const payloadToBE = {
-      nik_ktp: data.nik_ktp,
-      nik_karyawan: data.nik_karyawan || '-',
-      nama: data.nama,
-      jenis_kelamin: data.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan',
-      ttl: `${data.tempat_lahir}, ${data.tanggal_lahir}`,
-      agama: data.agama,
-      no_hp: data.no_hp,
-      status_ptkp: data.status_ptkp,
-      emergency_contact: data.emergency_contact_nama,
-      hubungan_emergency: data.emergency_contact_hubungan,
-      alamat_domisili: data.alamat_domisili,
-
-      jenjang_pendidikan: data.jenjang_pendidikan || null,
-      nama_sekolah: data.nama_pendidikan || null,
-      tahun_lulus: data.tahun_lulus || null,
-      keterangan_lulus: data.keterangan_lulus || null,
-      ipk_nilai: parseFloat(data.ipk) || 0,
-      diklat_ptbest: data.diklat_pt_best || '-',
-
-      status_pegawai: data.status_pegawai || 'Internship', 
-      level_grade: data.level_grade || '-', 
-      jabatan_structural: data.jabatan_struktural || '-', 
-      review_kpi: data.review_kpi || '-',
-      
-      jenjang_karir_json: data.karir_dinamis || [],
-      talenta_history_json: data.talenta_dinamis || [],
-      sk_direksi_json: data.sk_dinamis || [],
-      bukti_talenta_json: data.bukti_talenta_dinamis || [],
-      kompetensi_json: data.kompetensi_dinamis || [],
-      
-      nama_bank: data.nama_bank,
-      no_rekening: data.nomor_rekening,
-      npwp: data.npwp,
-      gaji_p1: parseInt(data.gaji_pokok_p1) || 0,
-      gaji_p2: parseInt(data.tunjangan_p2) || 0,
-      thr: parseInt(data.thr) || 0,
-      bonus: parseInt(data.bonus) || 0,
-      uang_cuti: parseInt(data.uang_cuti) || 0,
-      bpjs_kesehatan: data.no_bpjs_kesehatan,
-      bpjs_ketenagakerjaan: data.no_bpjs_ketenagakerjaan,
-    };
-
+    const loadingToast = toast.loading('Mengirim pengajuan perubahan...');
     try {
-      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${id}`, {
-        method: 'PUT', // Karena ini ngedit data
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payloadToBE) 
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/karyawan/request-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ ...data, nik_ktp: nikKtp })
       });
-
-      const result = await response.json();
-
       if (response.ok) {
-        toast.success(`Data ${data.nama} berhasil diperbarui!`, { id: loadingToast });
-        navigate('/karyawan');
-      } else {
-        toast.error('Gagal update: ' + (result.message || 'Cek database'), { id: loadingToast });
-      }
-    } catch  {
-      toast.error('Gagal menghubungi server!', { id: loadingToast });
-    }
+        toast.success('Pengajuan terkirim! Menunggu review HR.', { id: loadingToast });
+        navigate('/pengaturan');
+      } else { toast.error('Gagal mengirim data.', { id: loadingToast }); }
+    } catch { toast.error('Masalah koneksi.', { id: loadingToast }); }
   };
 
-  if (isLoadingData) {
-    return <div className="text-center py-20 font-bold text-gray-500">Memuat Data Karyawan...</div>;
-  }
+  if (isLoading) return <div className="p-20 text-center font-bold text-gray-400">Memuat Data...</div>;
 
   return (
     <div className="max-w-5xl mx-auto pb-10">
       <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border">
-        <h1 className="text-2xl font-bold mb-2 text-gray-800">Edit Data Karyawan</h1>
-        <p className="text-gray-500 text-sm mb-6">Perbarui informasi profil dan riwayat karyawan PT. BEST.</p>
-        
-        {/* Indikator Stepper */}
+        <h1 className="text-2xl font-bold mb-4 text-gray-800">Ajukan Perubahan Profil</h1>
         <div className={`flex justify-between items-center relative px-4 mx-auto ${steps.length <= 2 ? 'max-w-lg' : 'w-full'}`}>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
-          <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary transition-all duration-300 -z-10"
-            style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
-          ></div>
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = index <= currentStep;
-            return (
-              <div key={index} className="flex flex-col items-center gap-2 bg-white px-2">
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-colors ${
-                  isActive ? 'bg-primary border-primary text-white' : 'bg-white border-gray-300 text-gray-400'
-                }`}>
-                  <Icon size={20} />
-                </div>
-                <span className={`text-[10px] md:text-xs font-medium text-center ${isActive ? 'text-primary' : 'text-gray-400'}`}>
-                  {step.title}
-                </span>
-              </div>
-            );
-          })}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary transition-all duration-300 -z-10" style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}></div>
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col items-center gap-2 bg-white px-2">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${index <= currentStep ? 'bg-primary border-primary text-white' : 'text-gray-400'}`}><step.icon size={18}/></div>
+              <span className="text-[10px] font-medium text-gray-500">{step.title}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-sm border">
-        <form onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}>
-          
-          {/* ================= STEP A: DATA PRIBADI ================= */}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* STEP A: PRIBADI */}
           {steps[currentStep].id === 'A' && (
             <div className="space-y-4 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">A. Data Pribadi (Induk)</h3>
+              <h3 className="text-lg font-bold text-primary border-b pb-2">A. Data Pribadi</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Nama Lengkap <span className="text-red-500">*</span></label>
-                  <input {...register('nama', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">NIK KTP <span className="text-red-500">*</span></label>
-                  <input type="number" {...register('nik_ktp', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-gray-50" readOnly />
-                  <p className="text-xs text-gray-400 mt-1">NIK KTP tidak dapat diubah (Kunci Utama).</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-600">NIK Karyawan</label>
-                  <input {...register('nik_karyawan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status PTKP</label>
-                  <select {...register('status_ptkp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="TK/0">TK/0 (Tidak Kawin, 0 Tanggungan)</option>
-                    <option value="K/0">K/0 (Kawin, 0 Tanggungan)</option>
-                    <option value="K/1">K/1 (Kawin, 1 Tanggungan)</option>
-                    <option value="K/2">K/2 (Kawin, 2 Tanggungan)</option>
-                    <option value="K/3">K/3 (Kawin, 3 Tanggungan)</option>
-                  </select>
-                </div>
+                <div><label className="text-sm font-medium">Nama Lengkap</label><input {...register('nama')} className="w-full p-2.5 border rounded-lg" /></div>
+                <div className="bg-gray-50 p-2.5 rounded-lg border"><label className="text-xs font-bold text-gray-400 flex items-center gap-1"><Lock size={12}/> NIK KTP</label><input disabled value={nikKtp} className="w-full bg-transparent text-gray-500 cursor-not-allowed" /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tempat Lahir</label>
-                    <input {...register('tempat_lahir')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tanggal Lahir</label>
-                    <input type="date" {...register('tanggal_lahir')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                  </div>
+                  <div><label className="text-sm font-medium">Tempat Lahir</label><input {...register('tempat_lahir')} className="w-full p-2.5 border rounded-lg" /></div>
+                  <div><label className="text-sm font-medium">Tanggal Lahir</label><input type="date" {...register('tanggal_lahir')} className="w-full p-2.5 border rounded-lg" /></div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Jenis Kelamin</label>
-                  <select {...register('jenis_kelamin')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="L">Laki-laki</option>
-                    <option value="P">Perempuan</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Agama</label>
-                  <select {...register('agama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="Islam">Islam</option>
-                    <option value="Kristen">Kristen</option>
-                    <option value="Katolik">Katolik</option>
-                    <option value="Hindu">Hindu</option>
-                    <option value="Buddha">Buddha</option>
-                    <option value="Konghucu">Konghucu</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">No. Handphone</label>
-                  <input type="number" {...register('no_hp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Kontak Darurat (Nama)</label>
-                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Hubungan</label>
-                    <input {...register('emergency_contact_hubungan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
-                  </div>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Alamat Domisili</label>
-                  <textarea {...register('alamat_domisili')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none h-20"></textarea>
-                </div>
+                <div><label className="text-sm font-medium">No. Handphone</label><input type="number" {...register('no_hp')} className="w-full p-2.5 border rounded-lg" /></div>
+                <div className="md:col-span-2"><label className="text-sm font-medium">Alamat Domisili</label><textarea {...register('alamat_domisili')} className="w-full p-2.5 border rounded-lg h-20"></textarea></div>
               </div>
             </div>
           )}
 
-          {/* ================= STEP B: PENDIDIKAN ================= */}
-          {steps[currentStep].id === 'B' && (
+          {/* STEP B: PENDIDIKAN */}
+          {isPKWTT && steps[currentStep].id === 'B' && (
             <div className="space-y-4 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">B. Pendidikan & Diklat Internal</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Jenjang Pendidikan Terakhir</label>
-                  <select {...register('jenjang_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA">SMA/SMK</option><option value="DIPLOMA">DIPLOMA</option><option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
-                  </select>
-                </div>
-                <div><label className="block text-sm font-medium mb-1">Nama Institusi Pendidikan</label><input {...register('nama_pendidikan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Tahun Lulus</label><input type="number" {...register('tahun_lulus')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Keterangan Kelulusan</label>
-                  <select {...register('keterangan_lulus')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
-                    <option value="Lulus">Lulus</option><option value="Sedang Menempuh">Sedang Menempuh</option><option value="Tidak Lulus">Tidak Lulus</option>
-                  </select>
-                </div>
-                <div><label className="block text-sm font-medium mb-1">IPK / Nilai</label><input step="0.01" type="number" {...register('ipk')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Diklat PT. Best (Internal)</label><input {...register('diklat_pt_best')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-              </div>
+               <h3 className="text-lg font-bold text-primary border-b pb-2">B. Pendidikan</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div><label className="text-sm font-medium">Institusi</label><input {...register('nama_pendidikan')} className="w-full p-2.5 border rounded-lg" /></div>
+                 <div><label className="text-sm font-medium">Tahun Lulus</label><input type="number" {...register('tahun_lulus')} className="w-full p-2.5 border rounded-lg" /></div>
+               </div>
             </div>
           )}
 
-          {/* ================= STEP C: KARIR & KINERJA ================= */}
-          {steps[currentStep].id === 'C' && (
+          {/* STEP C: KARIR, SK, & TALENTA (DISINI SEMUA VARIABEL DIGUNAKAN) */}
+          {isPKWTT && steps[currentStep].id === 'C' && (
             <div className="space-y-6 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 text-primary">C. Karir & Talenta</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status Pegawai</label>
-                  <select {...register('status_pegawai')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" onChange={(e) => {
-                    // Kalau status diubah jadi PKWTT/PKWT, formnya jadi full
-                    setIsFullForm(e.target.value === 'PKWTT' || e.target.value === 'PKWT');
-                  }}>
-                    <option value="PKWT">PKWT (Kontrak)</option>
-                    <option value="PKWTT">PKWTT (Tetap)</option>
-                    <option value="Internship">Internship (Magang)</option>
-                    <option value="THL">THL</option>
-                  </select>
-                </div>
-                <div><label className="block text-sm font-medium mb-1">Level / Grade</label><input {...register('level_grade')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Jabatan Struktural</label><input {...register('jabatan_struktural')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Review Hasil KPI</label><input {...register('review_kpi')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-              </div>
-
-              {/* 1. DINAMIS: JENJANG KARIR */}
-              <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
-                <div className="flex items-center justify-between mb-4 border-b pb-3">
-                  <h4 className="font-bold text-gray-700">Jenjang Karir</h4>
-                  <button type="button" onClick={() => appendKarir({ tahun: '', tipe: 'Basic' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-semibold text-sm border border-green-300">
-                    <Plus size={16} /> Tambah Karir
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {karirFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center">
-                      <div className="w-10 flex justify-center"><button type="button" onClick={() => removeKarir(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={18} /></button></div>
-                      <input {...register(`karir_dinamis.${index}.tahun`)} className="flex-1 p-2.5 border rounded-lg bg-white" placeholder="Tahun" />
-                      <select {...register(`karir_dinamis.${index}.tipe`)} className="flex-1 p-2.5 border rounded-lg bg-white">
-                        <option value="Basic">Basic</option><option value="Spesific">Spesific</option><option value="System">System</option>
-                      </select>
+               {/* KARIR */}
+               <div className="border p-5 rounded-xl bg-gray-50">
+                  <div className="flex justify-between items-center mb-4"><h4 className="font-bold">Jenjang Karir</h4><button type="button" onClick={() => appendKarir({tahun: '', tipe: 'Basic'})} className="p-2 bg-green-600 text-white rounded-lg"><Plus size={16}/></button></div>
+                  {karirFields.map((f, i) => (
+                    <div key={f.id} className="flex gap-2 mb-2">
+                      <input {...register(`karir_dinamis.${i}.tahun`)} className="flex-1 p-2 border rounded" placeholder="Tahun"/>
+                      <button type="button" onClick={() => removeKarir(i)} className="text-red-500"><Trash2 size={20}/></button>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* 2. DINAMIS: SK DIREKSI */}
-              <div className="border border-orange-200 rounded-xl p-5 bg-orange-50/30">
-                <div className="flex items-center justify-between mb-4 border-b border-orange-200 pb-3">
-                  <h4 className="font-bold text-orange-800">SK Direksi</h4>
-                  <button type="button" onClick={() => appendSk({ nama_sk: 'PKWT', link_sk: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-sm border border-orange-300">
-                    <Plus size={16} /> Tambah SK
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {skFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center">
-                      <div className="w-10 flex justify-center"><button type="button" onClick={() => removeSk(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={18} /></button></div>
-                      <select {...register(`sk_dinamis.${index}.nama_sk`)} className="flex-1 p-2.5 border border-orange-200 rounded-lg bg-white">
-                        <option value="PKWT">PKWT</option><option value="PKWTT">PKWTT</option><option value="Promosi">Promosi</option>
-                      </select>
-                      <input {...register(`sk_dinamis.${index}.link_sk`)} className="flex-1 p-2.5 border border-orange-200 rounded-lg bg-white" placeholder="Link GDrive" />
+               </div>
+               {/* SK DIREKSI */}
+               <div className="border p-5 rounded-xl bg-orange-50/50 border-orange-200">
+                  <div className="flex justify-between items-center mb-4 text-orange-800 font-bold"><h4>SK Direksi</h4><button type="button" onClick={() => appendSk({nama_sk: 'PKWT', link_sk: ''})} className="p-2 bg-orange-600 text-white rounded-lg"><Plus size={16}/></button></div>
+                  {skFields.map((f, i) => (
+                    <div key={f.id} className="flex gap-2 mb-2">
+                      <input {...register(`sk_dinamis.${i}.link_sk`)} className="flex-1 p-2 border border-orange-200 rounded" placeholder="Link GDrive SK"/>
+                      <button type="button" onClick={() => removeSk(i)} className="text-red-500"><Trash2 size={20}/></button>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* 3. DINAMIS: PENILAIAN TALENTA */}
-              <div className="border border-blue-200 rounded-xl p-5 bg-blue-50/30">
-                <div className="flex items-center justify-between mb-4 border-b border-blue-200 pb-3">
-                  <h4 className="font-bold text-blue-800">Penilaian Talenta</h4>
-                  <button type="button" onClick={() => appendTalenta({ semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm border border-blue-300">
-                    <Plus size={16} /> Tambah
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {talentaFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center">
-                      <div className="w-10 flex justify-center"><button type="button" onClick={() => removeTalenta(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={18} /></button></div>
-                      <select {...register(`talenta_dinamis.${index}.semester`)} className="w-1/4 p-2.5 border border-blue-200 rounded-lg bg-white"><option value="Sem 1">Sem 1</option><option value="Sem 2">Sem 2</option></select>
-                      <select {...register(`talenta_dinamis.${index}.tahun`)} className="w-1/4 p-2.5 border border-blue-200 rounded-lg bg-white">{years.map(year => (<option key={year} value={year}>{year}</option>))}</select>
-                      <select {...register(`talenta_dinamis.${index}.status`)} className="flex-1 p-2.5 border border-blue-200 rounded-lg bg-white"><option value="Optimal">Optimal</option><option value="Potensial">Potensial</option><option value="Standar">Standar</option><option value="Kurang">Kurang</option></select>
+               </div>
+               {/* PENILAIAN TALENTA */}
+               <div className="border p-5 rounded-xl bg-blue-50/50 border-blue-200">
+                  <div className="flex justify-between items-center mb-4 text-blue-800 font-bold"><h4>Penilaian Talenta</h4><button type="button" onClick={() => appendTalenta({semester: 'Sem 1', tahun: currentYear.toString(), status: 'Standar'})} className="p-2 bg-blue-600 text-white rounded-lg"><Plus size={16}/></button></div>
+                  {talentaFields.map((f, i) => (
+                    <div key={f.id} className="flex gap-2 mb-2">
+                      <select {...register(`talenta_dinamis.${i}.tahun`)} className="p-2 border border-blue-200 rounded">{years.map(y => <option key={y} value={y}>{y}</option>)}</select>
+                      <button type="button" onClick={() => removeTalenta(i)} className="text-red-500"><Trash2 size={20}/></button>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* 4. DINAMIS: BUKTI TALENTA */}
-              <div className="border border-purple-200 rounded-xl p-5 bg-purple-50/30">
-                <div className="flex items-center justify-between mb-4 border-b border-purple-200 pb-3">
-                  <h4 className="font-bold text-purple-800">Bukti Talenta</h4>
-                  <button type="button" onClick={() => appendBuktiTalenta({ tahun: '', link_bukti: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-sm border border-purple-300">
-                    <Plus size={16} /> Tambah
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {buktiTalentaFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center">
-                      <div className="w-10 flex justify-center"><button type="button" onClick={() => removeBuktiTalenta(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={18} /></button></div>
-                      <input {...register(`bukti_talenta_dinamis.${index}.tahun`)} className="flex-1 p-2.5 border border-purple-200 rounded-lg bg-white" placeholder="Tahun" />
-                      <input {...register(`bukti_talenta_dinamis.${index}.link_bukti`)} className="flex-1 p-2.5 border border-purple-200 rounded-lg bg-white" placeholder="Link GDrive" />
+               </div>
+               {/* BUKTI TALENTA */}
+               <div className="border p-5 rounded-xl bg-purple-50/50 border-purple-200">
+                  <div className="flex justify-between items-center mb-4 text-purple-800 font-bold"><h4>Bukti Talenta</h4><button type="button" onClick={() => appendBuktiTalenta({tahun: '', link_bukti: ''})} className="p-2 bg-purple-600 text-white rounded-lg"><Plus size={16}/></button></div>
+                  {buktiTalentaFields.map((f, i) => (
+                    <div key={f.id} className="flex gap-2 mb-2">
+                      <input {...register(`bukti_talenta_dinamis.${i}.link_bukti`)} className="flex-1 p-2 border border-purple-200 rounded" placeholder="Link Bukti GDrive"/>
+                      <button type="button" onClick={() => removeBuktiTalenta(i)} className="text-red-500"><Trash2 size={20}/></button>
                     </div>
                   ))}
-                </div>
-              </div>
+               </div>
             </div>
           )}
 
-          {/* ================= STEP D: FINANSIAL ================= */}
+          {/* STEP D: FINANSIAL */}
           {steps[currentStep].id === 'D' && (
             <div className="space-y-4 animate-fade-in">
-              <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-4 text-sm text-red-800 font-medium">
-                ⚠️ D. Data Finansial: Informasi Rahasia.
-              </div>
+              <h3 className="text-lg font-bold text-primary border-b pb-2">D. Finansial</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div><label className="block text-sm font-medium mb-1">Nama Bank</label><input {...register('nama_bank')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Nomor Rekening</label><input type="number" {...register('nomor_rekening')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Gaji Pokok (P1)</label><input type="number" {...register('gaji_pokok_p1')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div><label className="block text-sm font-medium mb-1">Tunjangan (P2)</label><input type="number" {...register('tunjangan_p2')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div className="grid grid-cols-3 gap-2 md:col-span-2">
-                  <div><label className="block text-sm font-medium mb-1">THR</label><input type="number" {...register('thr')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                  <div><label className="block text-sm font-medium mb-1">Bonus</label><input type="number" {...register('bonus')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                  <div><label className="block text-sm font-medium mb-1">Uang Cuti</label><input type="number" {...register('uang_cuti')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                </div>
-                <div><label className="block text-sm font-medium mb-1">NPWP</label><input {...register('npwp')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                <div className="grid grid-cols-2 gap-2 md:col-span-2">
-                  <div><label className="block text-sm font-medium mb-1">No. BPJS Kesehatan</label><input type="number" {...register('no_bpjs_kesehatan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                  <div><label className="block text-sm font-medium mb-1">No. BPJS Ketenagakerjaan</label><input type="number" {...register('no_bpjs_ketenagakerjaan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" /></div>
-                </div>
+                <div><label className="text-sm font-medium">Nama Bank</label><input {...register('nama_bank')} className="w-full p-2.5 border rounded-lg" /></div>
+                <div><label className="text-sm font-medium">No. Rekening</label><input type="number" {...register('nomor_rekening')} className="w-full p-2.5 border rounded-lg" /></div>
               </div>
             </div>
           )}
 
-          {/* ================= STEP E: KOMPETENSI EKSTERNAL ================= */}
-          {steps[currentStep].id === 'E' && (
-            <div className="space-y-4 animate-fade-in">
-              <h3 className="text-lg font-semibold border-b pb-2 mb-4 text-primary">E. Kompetensi Eksternal</h3>
-              
-              {/* 5. DINAMIS: KOMPETENSI */}
-              <div className="border border-teal-200 rounded-xl p-5 bg-teal-50/30">
-                <div className="flex items-center justify-between mb-4 border-b border-teal-200 pb-3">
-                  <h4 className="font-bold text-teal-800">Sertifikat / Kompetensi</h4>
-                  <button type="button" onClick={() => appendKompetensi({ jenis: 'Brevet Pajak', link_sertifikat: '' })} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg text-sm border border-teal-300">
-                    <Plus size={16} /> Tambah Kompetensi
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {kompetensiFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-center">
-                      <div className="w-10 flex justify-center"><button type="button" onClick={() => removeKompetensi(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={18} /></button></div>
-                      <select {...register(`kompetensi_dinamis.${index}.jenis`)} className="flex-1 p-2.5 border border-teal-200 rounded-lg bg-white">
-                        <option value="Brevet Pajak">Brevet Pajak</option><option value="Bootcamp IT">Bootcamp IT</option><option value="Seminar HR">Seminar HR</option><option value="Jurnal Publikasi">Jurnal Publikasi</option><option value="Sertifikasi Lainnya">Lainnya</option>
-                      </select>
-                      <input {...register(`kompetensi_dinamis.${index}.link_sertifikat`)} className="flex-1 p-2.5 border border-teal-200 rounded-lg bg-white" placeholder="Link GDrive" />
+          {/* STEP E: KOMPETENSI */}
+          {isPKWTT && steps[currentStep].id === 'E' && (
+             <div className="space-y-4 animate-fade-in">
+                <h3 className="text-lg font-bold text-primary border-b pb-2">E. Sertifikasi</h3>
+                <div className="border p-5 rounded-xl bg-teal-50 border-teal-200">
+                  <button type="button" onClick={() => appendKompetensi({jenis: 'Lainnya', link_sertifikat: ''})} className="mb-4 bg-teal-600 text-white p-2 rounded-lg flex items-center gap-2"><Plus size={16}/> Tambah Sertifikat</button>
+                  {kompetensiFields.map((f, i) => (
+                    <div key={f.id} className="flex gap-2 mb-2">
+                      <input {...register(`kompetensi_dinamis.${i}.link_sertifikat`)} className="flex-1 p-2 border border-teal-200 rounded" placeholder="Link Sertifikat"/>
+                      <button type="button" onClick={() => removeKompetensi(i)} className="text-red-500"><Trash2 size={20}/></button>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
+             </div>
           )}
 
-          {/* --- TOMBOL NAVIGASI BAWAH --- */}
           <div className="flex justify-between mt-8 pt-6 border-t">
-            {currentStep > 0 ? (
-              <button type="button" onClick={prevStep} className="flex items-center gap-2 px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                <ChevronLeft size={20} /> Kembali
-              </button>
-            ) : <div></div>}
-
-            {currentStep < steps.length - 1 ? (
-              <button type="button" onClick={nextStep} className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:brightness-110 shadow-md transition-all">
-                Lanjut <ChevronRight size={20} />
-              </button>
-            ) : (
-              <button 
-                type="button" 
-                onClick={handleSubmit(onSubmit)} 
-                className="flex items-center gap-2 px-8 py-2 bg-secondary text-white rounded-lg hover:brightness-110 font-bold shadow-lg shadow-green-200 transition-all"
-              >
-                <Save size={20} /> Update Data Karyawan
-              </button>
-            )}
+            {currentStep > 0 ? <button type="button" onClick={() => setCurrentStep(c => c - 1)} className="flex items-center gap-2 px-6 py-2 border rounded-lg hover:bg-gray-50 transition-colors"><ChevronLeft size={20}/> Kembali</button> : <div/>}
+            {currentStep < steps.length - 1 
+              ? <button type="button" onClick={nextStep} className="bg-primary text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:brightness-110">Lanjut <ChevronRight size={20}/></button>
+              : <button type="submit" className="bg-secondary text-white px-8 py-2 rounded-lg font-bold flex items-center gap-2 hover:brightness-110 shadow-lg shadow-green-200"><Save size={20}/> Kirim Pengajuan</button>
+            }
           </div>
-
         </form>
       </div>
     </div>
