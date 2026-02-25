@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, FileSpreadsheet, Eye, Edit, Trash2, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Search, Plus, FileSpreadsheet, Eye, Edit, Trash2, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export default function EmployeeList() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // --- STATE UNTUK FILTER & PENCARIAN ---
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Semua'); // Default nampilin semua
+  
+  // --- STATE UNTUK PAGINATION ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // Batas data per halaman (Bisa lu ganti jadi 10 atau 20 nanti)
 
-  // State untuk Modal Detail
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
 
-  // 1. FUNGSI NARIK DATA DARI API (GET)
+  // 1. FUNGSI NARIK DATA DARI API (TETAP AMAN)
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
@@ -37,48 +43,54 @@ export default function EmployeeList() {
     fetchEmployees();
   }, []);
 
-  // 2. FUNGSI PENCARIAN (SEARCH)
+  // 2. OTOMATIS BALIK KE HALAMAN 1 KALAU ADMIN NGETIK PENCARIAN ATAU GANTI FILTER
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
+
+  // 3. LOGIKA FILTER & SEARCH (Diolah di Frontend)
   const filteredEmployees = employees.filter((employee) => {
+    // Logika Search
     const namaMatch = (employee.nama || '').toLowerCase().includes(searchTerm.toLowerCase());
     const nikMatch = (employee.nik_karyawan || '').includes(searchTerm) || (employee.nik_ktp || '').includes(searchTerm);
-    return namaMatch || nikMatch;
+    
+    // Logika Filter Status
+    const statusMatch = filterStatus === 'Semua' || (employee.status_pegawai || 'Internship') === filterStatus;
+    
+    return (namaMatch || nikMatch) && statusMatch;
   });
+
+  // 4. LOGIKA PAGINATION (Motong data untuk halaman saat ini)
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  // Ini data yang bakal ditampilin khusus di halaman yang lagi dibuka
+  const currentItems = filteredEmployees.slice(indexOfFirstItem, indexOfLastItem); 
 
   // ==========================================
   // FUNGSI AKSI TOMBOL (VIEW, EDIT, DELETE)
   // ==========================================
-
-  // A. Tombol Lihat Detail (Munculin Pop-up/Modal)
   const handleView = (emp) => {
     setSelectedEmp(emp);
     setIsModalOpen(true);
   };
 
-  // B. Tombol Edit (Arahin ke halaman edit)
   const handleEdit = (id) => {
-    // Kita arahin ke rute edit (Nanti kita bikin komponen EditEmployee-nya)
     navigate(`/edit-karyawan/${id}`);
   };
 
-  // C. Tombol Hapus (Konfirmasi & Hapus API)
   const handleDelete = async (id, nama) => {
     const isConfirm = window.confirm(`Yakin mau hapus data karyawan: ${nama}?`);
-    
     if (isConfirm) {
-      // 1. Hapus langsung dari tampilan layar (Biar UI kerasa cepet)
       setEmployees(employees.filter(emp => emp.id !== id));
-      
-      // 2. Tembak API DELETE ke Backend
       try {
-        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${id}`, {
+        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/delete/${id}`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });
-
         if (response.ok) {
           toast.success(`Data ${nama} berhasil dihapus!`);
         } else {
-          // Kalau gagal di DB, kita panggil ulang datanya biar balik lagi ke layar
           toast.error('Gagal menghapus data di database.');
           fetchEmployees(); 
         }
@@ -108,13 +120,22 @@ export default function EmployeeList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 font-medium">
-            <Filter size={20} />
-            <span className="hidden md:inline">Filter</span>
-          </button>
+          
+          {/* UBAHAN: Tombol Filter diganti jadi Dropdown */}
+          <select 
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 font-medium focus:outline-none focus:ring-2 focus:ring-primary outline-none"
+          >
+            <option value="Semua">Semua Status</option>
+            <option value="PKWTT">PKWTT</option>
+            <option value="PKWT">PKWT</option>
+            <option value="Internship">Internship</option>
+            <option value="THL">THL</option>
+          </select>
         </div>
 
-        {/* Kanan: Tombol Aksi Utama (Tombol Tambah Karyawan Dihapus) */}
+        {/* Kanan: Tombol Aksi Utama */}
         <div className="flex gap-2 w-full md:w-auto">
           <button className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium w-full md:w-auto shadow-sm">
             <FileSpreadsheet size={20} />
@@ -138,7 +159,6 @@ export default function EmployeeList() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                /* TAMPILAN LOADING */
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
                     <div className="flex justify-center items-center gap-3">
@@ -147,9 +167,9 @@ export default function EmployeeList() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredEmployees.length > 0 ? (
-                /* TAMPILAN DATA KARYAWAN */
-                filteredEmployees.map((emp) => (
+              ) : currentItems.length > 0 ? (
+                /* UBAHAN: Yang di-map sekarang adalah currentItems, bukan lagi filteredEmployees */
+                currentItems.map((emp) => (
                   <tr key={emp.id} className="hover:bg-blue-50/50 transition-colors">
                       <td className="px-6 py-4 font-bold text-gray-800">{emp.nama}</td>
                       <td className="px-6 py-4">
@@ -165,34 +185,22 @@ export default function EmployeeList() {
                         <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
                           emp.status_pegawai === 'PKWTT' ? 'bg-green-100 text-green-700 border border-green-200' : 
                           emp.status_pegawai === 'PKWT' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
+                          emp.status_pegawai === 'THL' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
                           'bg-orange-100 text-orange-700 border border-orange-200'
                         }`}>
                           {emp.status_pegawai || 'Internship'}                      
                         </span>
                       </td>
                       
-                      {/* --- TOMBOL AKSI --- */}
                       <td className="px-6 py-4">
                         <div className="flex justify-center gap-3">
-                          <button 
-                            onClick={() => handleView(emp)}
-                            className="text-gray-400 hover:text-blue-600 transition-colors" 
-                            title="Lihat Detail"
-                          >
+                          <button onClick={() => handleView(emp)} className="text-gray-400 hover:text-blue-600 transition-colors" title="Lihat Detail">
                             <Eye size={20} />
                           </button>
-                          <button 
-                            onClick={() => handleEdit(emp.id)}
-                            className="text-gray-400 hover:text-green-600 transition-colors" 
-                            title="Edit Data"
-                          >
+                          <button onClick={() => handleEdit(emp.id)} className="text-gray-400 hover:text-green-600 transition-colors" title="Edit Data">
                             <Edit size={20} />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(emp.id, emp.nama)}
-                            className="text-gray-400 hover:text-red-600 transition-colors" 
-                            title="Hapus Karyawan"
-                          >
+                          <button onClick={() => handleDelete(emp.id, emp.nama)} className="text-gray-400 hover:text-red-600 transition-colors" title="Hapus Karyawan">
                             <Trash2 size={20} />
                           </button>
                         </div>
@@ -200,7 +208,6 @@ export default function EmployeeList() {
                   </tr>
                 ))
               ) : (
-                /* TAMPILAN DATA KOSONG */
                 <tr>
                   <td colSpan="5" className="px-6 py-16 text-center text-gray-500">
                     <div className="flex flex-col items-center gap-3">
@@ -208,7 +215,7 @@ export default function EmployeeList() {
                         <Search size={32} className="text-gray-400" />
                       </div>
                       <p className="font-medium text-lg">Karyawan tidak ditemukan</p>
-                      <p className="text-sm text-gray-400">Coba gunakan kata kunci pencarian yang lain.</p>
+                      <p className="text-sm text-gray-400">Coba gunakan kata kunci pencarian atau filter yang lain.</p>
                     </div>
                   </td>
                 </tr>
@@ -217,38 +224,58 @@ export default function EmployeeList() {
           </table>
         </div>
         
-        {/* Pagination Info */}
+        {/* ==========================================
+            UBAHAN: PAGINATION YANG BENERAN BERFUNGSI
+            ========================================== */}
         <div className="px-6 py-4 border-t flex justify-between items-center text-sm text-gray-500 bg-gray-50/80">
-          <p className="font-medium">Total data: <span className="text-gray-800">{filteredEmployees.length}</span> karyawan</p>
+          <p className="font-medium">
+            Menampilkan {currentItems.length > 0 ? indexOfFirstItem + 1 : 0} - {Math.min(indexOfLastItem, filteredEmployees.length)} dari <span className="text-gray-800">{filteredEmployees.length}</span> karyawan
+          </p>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border bg-white rounded-lg hover:bg-gray-100 transition-colors font-medium">Sebelumnya</button>
-            <button className="px-4 py-2 border bg-white rounded-lg hover:bg-gray-100 transition-colors font-medium">Selanjutnya</button>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
+                currentPage === 1 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-white hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              Sebelumnya
+            </button>
+            
+            <div className="flex items-center px-2 font-bold text-gray-700">
+              {currentPage} / {totalPages || 1}
+            </div>
+
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
+                currentPage === totalPages || totalPages === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-white hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              Selanjutnya
+            </button>
           </div>
         </div>
       </div>
 
       {/* ==========================================
-          MODAL DETAIL KARYAWAN (POP-UP)
+          MODAL DETAIL KARYAWAN (TETAP SAMA)
           ========================================== */}
       {isModalOpen && selectedEmp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
               <h2 className="text-xl font-bold text-gray-800">Detail Karyawan</h2>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-colors"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
-
-            {/* Modal Body (Scrollable) */}
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              
-              {/* Info Dasar */}
               <div className="flex items-center gap-4 pb-6 border-b">
                 <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold uppercase">
                   {selectedEmp.nama.charAt(0)}
@@ -258,63 +285,24 @@ export default function EmployeeList() {
                   <p className="text-gray-500">{selectedEmp.jabatan_structural !== '-' ? selectedEmp.jabatan_structural : 'Belum ada jabatan'}</p>
                 </div>
               </div>
-
-              {/* Grid Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Status Pegawai</p>
-                  <p className="font-semibold text-gray-800">{selectedEmp.status_pegawai || 'Internship'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">NIK KTP</p>
-                  <p className="font-mono text-gray-800">{selectedEmp.nik_ktp}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">NIK Karyawan</p>
-                  <p className="font-mono text-gray-800">{selectedEmp.nik_karyawan}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Jenis Kelamin</p>
-                  <p className="font-semibold text-gray-800">{selectedEmp.jenis_kelamin}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Nomor HP</p>
-                  <p className="font-semibold text-gray-800">{selectedEmp.no_hp}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Agama</p>
-                  <p className="font-semibold text-gray-800">{selectedEmp.agama}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-sm text-gray-500 mb-1">Alamat Domisili</p>
-                  <p className="font-semibold text-gray-800">{selectedEmp.alamat_domisili}</p>
-                </div>
+                <div><p className="text-sm text-gray-500 mb-1">Status Pegawai</p><p className="font-semibold text-gray-800">{selectedEmp.status_pegawai || 'Internship'}</p></div>
+                <div><p className="text-sm text-gray-500 mb-1">NIK KTP</p><p className="font-mono text-gray-800">{selectedEmp.nik_ktp}</p></div>
+                <div><p className="text-sm text-gray-500 mb-1">NIK Karyawan</p><p className="font-mono text-gray-800">{selectedEmp.nik_karyawan}</p></div>
+                <div><p className="text-sm text-gray-500 mb-1">Jenis Kelamin</p><p className="font-semibold text-gray-800">{selectedEmp.jenis_kelamin}</p></div>
+                <div><p className="text-sm text-gray-500 mb-1">Nomor HP</p><p className="font-semibold text-gray-800">{selectedEmp.no_hp}</p></div>
+                <div><p className="text-sm text-gray-500 mb-1">Agama</p><p className="font-semibold text-gray-800">{selectedEmp.agama}</p></div>
+                <div className="md:col-span-2"><p className="text-sm text-gray-500 mb-1">Alamat Domisili</p><p className="font-semibold text-gray-800">{selectedEmp.alamat_domisili}</p></div>
               </div>
-              
-              {/* Note untuk data lain */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                 <p className="text-sm text-blue-800">
                   <strong>Catatan:</strong> Data finansial, karir, dan sertifikat disembunyikan dalam *view* cepat ini. Klik tombol <strong>Edit Data</strong> untuk melihat atau mengubah seluruh riwayat.
                 </p>
               </div>
-
             </div>
-
-            {/* Modal Footer */}
             <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Tutup
-              </button>
-              <button 
-                onClick={() => {
-                  setIsModalOpen(false);
-                  handleEdit(selectedEmp.id);
-                }}
-                className="px-5 py-2 bg-primary text-white font-medium hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg transition-colors">Tutup</button>
+              <button onClick={() => { setIsModalOpen(false); handleEdit(selectedEmp.id); }} className="px-5 py-2 bg-primary text-white font-medium hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
                 <Edit size={18} /> Edit Data Ini
               </button>
             </div>
