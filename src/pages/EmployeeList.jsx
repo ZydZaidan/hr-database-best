@@ -80,7 +80,7 @@ export default function EmployeeList() {
   };
 
 // Tambahin parameter nik_ktp di tengah
-  const handleDelete = async (id, nik_ktp, nama) => {
+  const handleDelete = async (id, nama, nik_ktp) => {
     const isConfirm = window.confirm(`Yakin mau hapus data karyawan: ${nama}?`);
     if (isConfirm) {
       // Hapus dari layar pake id (biar instan)
