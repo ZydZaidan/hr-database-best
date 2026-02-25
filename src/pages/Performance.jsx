@@ -50,11 +50,11 @@ const realisasiVal = watch('realisasi', 0);
             <input type="month" {...register('bulan', { required: true })} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 flex items-center gap-1"><Target size={14}/> Target</label>
+            <label className="text-sm font-medium mb-1 flex items-center gap-1"><Target size={14}/> Target</label>
             <input type="number" {...register('target', { required: true })} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 100" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 flex items-center gap-1"><TrendingUp size={14}/> Realisasi</label>
+            <label className="text-sm font-medium mb-1 flex items-center gap-1"><TrendingUp size={14}/> Realisasi</label>
             <input type="number" {...register('realisasi', { required: true })} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 95" />
           </div>
           <button type="submit" className="flex items-center justify-center gap-2 w-full p-2.5 bg-primary text-white rounded-lg hover:brightness-110 font-medium">
