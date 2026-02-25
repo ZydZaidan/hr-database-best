@@ -136,9 +136,12 @@ export default function AddEmployee() {
 
       if (response.ok) {
         toast.success('Data Berhasil Masuk ke Database Railway!', { id: loadingToast });
+        
+        // --- TAMBAHKAN BARIS INI ---
+        localStorage.setItem('nik_ktp', data.nik_ktp); // Simpan NIK pendaftar ke memori
+        // ---------------------------
 
         localStorage.setItem('isProfileComplete', 'true');
-
         navigate('/');
       } else {
         console.error("Error dari Server:", result);
