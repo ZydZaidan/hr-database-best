@@ -79,20 +79,25 @@ export default function EmployeeList() {
     navigate(`/edit-karyawan/${id}`);
   };
 
-  const handleDelete = async (id, nama, nik_ktp) => {
+// Tambahin parameter nik_ktp di tengah
+  const handleDelete = async (id, nik_ktp, nama) => {
     const isConfirm = window.confirm(`Yakin mau hapus data karyawan: ${nama}?`);
     if (isConfirm) {
+      // Hapus dari layar pake id (biar instan)
       setEmployees(employees.filter(emp => emp.id !== id));
+      
       try {
+        // Tembak API pake nik_ktp sesuai permintaan BE
         const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/delete/${nik_ktp}`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });
+        
         if (response.ok) {
           toast.success(`Data ${nama} berhasil dihapus!`);
         } else {
           toast.error('Gagal menghapus data di database.');
-          fetchEmployees(); 
+          fetchEmployees(); // Tarik ulang data kalau gagal di server
         }
       } catch (error) {
         console.error("Error deleting:", error);
@@ -200,7 +205,7 @@ export default function EmployeeList() {
                           <button onClick={() => handleEdit(emp.id)} className="text-gray-400 hover:text-green-600 transition-colors" title="Edit Data">
                             <Edit size={20} />
                           </button>
-                          <button onClick={() => handleDelete(emp.id, emp.nama)} className="text-gray-400 hover:text-red-600 transition-colors" title="Hapus Karyawan">
+                          <button onClick={() => handleDelete(emp.id, emp.nama, emp.nik_ktp)} className="text-gray-400 hover:text-red-600 transition-colors" title="Hapus Karyawan">
                             <Trash2 size={20} />
                           </button>
                         </div>
