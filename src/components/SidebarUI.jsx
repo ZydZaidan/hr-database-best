@@ -37,7 +37,7 @@ export default function SidebarUI({ role }) {
               <Link to="/karyawan" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/karyawan') || isActive('/tambah-karyawan') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <Users size={20} /> Kelola Data Karyawan
               </Link>
-              <Link to="/rekap-data" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/rekap-data') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <Link to="/rekap-data" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/rekap') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <FileText size={20} /> Rekap & Analisis
               </Link>
               <Link to="/approval" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/approval') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>

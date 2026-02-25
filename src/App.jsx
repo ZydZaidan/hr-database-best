@@ -12,7 +12,8 @@ import DocumentRequest from './pages/DocumentRequest';
 import Settings from './pages/Settings';
 import AdminApproval from './pages/AdminApproval';
 import EmployeeEditProfile from './pages/EmployeeEditProfile';
-import EditEmployee from './pages/EditEmployee'; // Sesuaikan lokasi file lu
+import EditEmployee from './pages/EditEmployee';
+import RekapAnalisis from './pages/RekapAnalisis';
 // --- BIKIN KOMPONEN SATPAM (PROTECTED ROUTE) ---
 // Fungsi ini bakal ngecek: "Ada role login nggak di browser?"
 const RequireAuth = ({ children }) => {
@@ -44,7 +45,7 @@ function App() {
           {/* Routes Admin */}
           <Route path="karyawan" element={<EmployeeList />} />
           <Route path="tambah-karyawan" element={<AddEmployee />} />
-          <Route path="rekap-data" element={<div className="p-6 bg-white rounded-xl">Halaman Rekap Data</div>} />
+          <Route path="/rekap" element={<RekapAnalisis />} />
           <Route path="approval" element={<AdminApproval />} />
           <Route path="/edit-karyawan/:id" element={<EditEmployee />} />
           {/* Routes Karyawan */}
