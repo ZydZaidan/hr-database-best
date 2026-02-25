@@ -17,14 +17,14 @@ import RekapAnalisis from './pages/RekapAnalisis';
 // --- BIKIN KOMPONEN SATPAM (PROTECTED ROUTE) ---
 // Fungsi ini bakal ngecek: "Ada role login nggak di browser?"
 const RequireAuth = ({ children }) => {
+  // Ambil token dan peran
+  const token = localStorage.getItem('auth_token');
   const userRole = localStorage.getItem('userRole');
   
-  if (!userRole) {
-    // Kalau belum login, langsung tendang ke halaman /login
+  if (!token || !userRole) {
     return <Navigate to="/login" replace />;
   }
   
-  // Kalau udah login, silakan masuk ke halaman yang dituju
   return children;
 };
 

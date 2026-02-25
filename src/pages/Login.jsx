@@ -1,82 +1,134 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, LogIn, Users } from 'lucide-react';
+import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState('admin');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
 
-  // Bersihin sisa login lama tiap kali buka halaman ini
-  useEffect(() => {
-    localStorage.clear();
-  }, []);
-
-  const handleLogin = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Pura-puranya loading nembak API
-    setTimeout(() => {
-      // Simpan role yang dipilih ke memori browser
-      localStorage.setItem('userRole', selectedRole);
-      
-      toast.success(`Berhasil masuk sebagai ${selectedRole.toUpperCase()}`);
-      navigate('/'); // Terbang ke Dashboard
-    }, 800);
+    try {
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // --- PROSES SETELAH LOGIN SUKSES ---
+        const { user, token } = result.data;
+
+        // 1. Simpan Token untuk otorisasi API berikutnya
+        localStorage.setItem('auth_token', token);
+        
+        // 2. Simpan Role (Peran) untuk navigasi Sidebar
+        // BE lo pake kolom 'peran' (admin/karyawan)
+        localStorage.setItem('userRole', user.peran);
+        
+        // 3. Simpan NIK KTP untuk sinkronisasi Profil
+        localStorage.setItem('nik_ktp', user.nik_ktp);
+        
+        // 4. Simpan Nama untuk header/display
+        localStorage.setItem('userName', user.name);
+
+        toast.success(`Selamat datang, ${user.name}!`);
+        
+        // Tendang ke Dashboard Utama
+        navigate('/');
+      } else {
+        // Handle error seperti: Akun belum aktif atau password salah
+        toast.error(result.message || 'Login Gagal. Silakan cek kembali.');
+      }
+    } catch (error) {
+      console.error('Login Error:', error);
+      toast.error('Gagal terhubung ke server.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl border w-full max-w-md animate-fade-in">
-        
-        {/* Header Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
-            <Building2 size={32} className="text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div className="p-8">
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-bold text-primary">PT. BEST</h1>
+            <p className="text-gray-500 mt-2">Human Resource Information System</p>
           </div>
-          <h1 className="text-2xl font-black text-gray-800 tracking-tight">Portal HRIS PT. BEST</h1>
-          <p className="text-gray-500 text-sm mt-1">Mode UI Testing (Tanpa API)</p>
-        </div>
 
-        {/* Form Login Dummy */}
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">Pilih Role Akun:</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Users size={18} className="text-gray-400" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Perusahaan</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
+                <input
+                  required
+                  type="email"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all"
+                  placeholder="name@ptbest.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
               </div>
-              <select 
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all appearance-none bg-white"
-              >
-                <option value="admin">Administrator / HR</option>
-                <option value="pkwtt">Karyawan Tetap (PKWTT)</option>
-                <option value="pkwt">Karyawan Kontrak (PKWT)</option>
-                <option value="thl">Tenaga Harian Lepas (THL)</option>
-                <option value="magang">Anak Magang / Internship</option>
-                <option value="konsultan">Konsultan</option>
-              </select>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              *Pilih role di atas untuk melihat perbedaan tampilan Dashboard dan Form.
-            </p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
+                <input
+                  required
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-blue-100 ${
+                isLoading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <LogIn size={20} /> Masuk Sekarang
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center text-sm text-gray-500">
+            Belum punya akun? <span className="text-primary font-bold cursor-pointer hover:underline">Hubungi HRD</span>
           </div>
-
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            className={`w-full flex items-center justify-center gap-2 p-3 text-white rounded-lg font-bold shadow-md transition-all ${
-              isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-primary hover:bg-blue-700 hover:shadow-lg'
-            }`}
-          >
-            {isLoading ? 'Memuat Dashboard...' : <><LogIn size={20} /> Masuk Sistem</>}
-          </button>
-        </form>
-
+        </div>
       </div>
     </div>
   );
