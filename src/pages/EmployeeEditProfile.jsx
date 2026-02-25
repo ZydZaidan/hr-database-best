@@ -24,17 +24,26 @@ export default function EmployeeEditProfile() {
 
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
-const onSubmit = (data) => {
+const onSubmit = async (data) => {
+    // Ambil NIK KTP dari memory browser (Pastikan namanya sesuai pas lo nyimpen waktu login)
+    const nikKtp = localStorage.getItem('nik_ktp'); 
+
+    if (!nikKtp) {
+      toast.error('Gagal: NIK KTP tidak ditemukan. Silakan login ulang.');
+      return;
+    }
+
     const loadingToast = toast.loading('Mengirim pengajuan perubahan ke Admin HR...');
 
     // Mapping Payload khusus data yang boleh diedit Karyawan
     const payloadToBE = {
+      nik_ktp: nikKtp, // Wajib dikirim biar BE tau siapa yang ngedit
       no_hp: data.no_hp,
       status_ptkp: data.status_ptkp,
       alamat_domisili: data.alamat_domisili,
       
       // Pembaruan Pendidikan & Kompetensi
-      nama_sekolah: data.nama_pendidikan_baru || undefined,
+      nama_sekolah: data.nama_pendidikan_baru || '-',
       seminar_bootcamp_ext: `${data.kompetensi_seminar || '-'} | ${data.kompetensi_bootcamp || '-'}`,
       
       // Pembaruan Finansial
@@ -44,11 +53,29 @@ const onSubmit = (data) => {
 
     console.log("🔥 Payload Perubahan Data Karyawan:", payloadToBE);
 
-    setTimeout(() => {
-      toast.dismiss(loadingToast);
-      toast.success('Pengajuan berhasil! Menunggu persetujuan HR.');
-      navigate('/pengaturan'); 
-    }, 1500);
+    try {
+      // TODO: Tembak ke API BE (Pastikan URL-nya sesuai sama buatan temen lo nanti)
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/karyawan/request-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payloadToBE)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Pengajuan berhasil! Menunggu persetujuan HR.', { id: loadingToast });
+        navigate('/pengaturan'); // Balik ke halaman setting
+      } else {
+        toast.error(`Gagal: ${result.message || 'Cek koneksi database'}`, { id: loadingToast });
+      }
+    } catch (error) {
+      console.error('Error saat ngirim data:', error);
+      toast.error('Koneksi terputus ke server.', { id: loadingToast });
+    }
   };
 
   return (
