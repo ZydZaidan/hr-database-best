@@ -2,8 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { User, Shield, Edit3 } from 'lucide-react';
 
 export default function Settings() {
-  const userRole = localStorage.getItem('userRole');
+  const userRole = localStorage.getItem('userRole') || '';
   const navigate = useNavigate();
+
+  // FIX: Deteksi apakah dia bukan admin (Artinya dia karyawan)
+  const isKaryawan = userRole !== 'admin';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -14,8 +17,8 @@ export default function Settings() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* KARTU PROFIL (KHUSUS KARYAWAN) */}
-        {userRole === 'karyawan' && (
+        {/* KARTU PROFIL (Tampil buat semua jenis karyawan) */}
+        {isKaryawan && (
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-blue-50 text-primary rounded-lg">
@@ -27,12 +30,11 @@ export default function Settings() {
               </div>
             </div>
             <div className="space-y-3 mb-6">
-              <p className="text-sm"><span className="text-gray-500">Nama:</span> Muh. Cholish</p>
-              <p className="text-sm"><span className="text-gray-500">NIK:</span> 1234567890</p>
-              <p className="text-sm"><span className="text-gray-500">No HP:</span> 08123456789</p>
+              <p className="text-sm"><span className="text-gray-500">Nama:</span> Karyawan PT BEST</p>
+              <p className="text-sm"><span className="text-gray-500">NIK:</span> -</p>
             </div>
             <button 
-              onClick={() => navigate('/edit-profil')}
+              onClick={() => navigate('/edit-profil')} // Mengarah ke halaman form edit karyawan
               className="w-full flex justify-center items-center gap-2 py-2.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
             >
               <Edit3 size={18} /> Ajukan Perubahan Data
@@ -40,7 +42,7 @@ export default function Settings() {
           </div>
         )}
 
-        {/* KARTU KEAMANAN (SEMUA ROLE) */}
+        {/* KARTU KEAMANAN (Tampil buat SEMUA ROLE, termasuk Admin) */}
         <div className="bg-white p-6 rounded-xl shadow-sm border">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-green-50 text-green-600 rounded-lg">
