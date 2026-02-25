@@ -1,50 +1,130 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, UserCheck, FileText, Clock, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AdminApproval() {
-  // State untuk Tab Aktif (1 = Perubahan Data, 2 = Surat)
   const [activeTab, setActiveTab] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- DUMMY DATA TAB 1: PERUBAHAN DATA ---
-  // Nanti diisi pakai useEffect fetch dari BE: GET /api/admin/list-requests
-  const [approvals, setApprovals] = useState([
-    { id: 1, nama: 'Siti Aminah', nik_karyawan: '0987654321', tanggal: '2026-02-20', bagian: 'Alamat & No HP', status: 'pending' },
-    { id: 2, nama: 'Andi Pratama', nik_karyawan: '1122334455', tanggal: '2026-02-19', bagian: 'Rekening Bank', status: 'pending' },
-  ]);
+  // State nampung data asli dari server
+  const [approvals, setApprovals] = useState([]);
+  const [documentRequests, setDocumentRequests] = useState([]);
 
-  // --- DUMMY DATA TAB 2: PENGAJUAN SURAT ---
-  // Nanti diisi pakai useEffect fetch dari BE: GET /api/admin/pending-surat
-  const [documentRequests, setDocumentRequests] = useState([
-    { id: 101, nama: 'Zidanol', jenis_surat: 'Surat Keterangan Penghasilan', tanggal: '2026-02-25', status: 'pending' },
-    { id: 102, nama: 'Muh. Cholish', jenis_surat: 'Curriculum Vitae (CV)', tanggal: '2026-02-25', status: 'pending' },
-  ]);
+  // ==========================================
+  // 1. FUNGSI NARIK DATA DARI BACKEND (GET)
+  // ==========================================
+  const fetchSemuaAntrean = async () => {
+    setIsLoading(true);
+    try {
+      // Narik Data Antrean Edit Profil
+      // (Pastiin URL-nya sesuai sama yang dibikin BE ya)
+      const resData = await fetch('https://absensi-backend-production-6002.up.railway.app/api/admin/list-requests');
+      if (resData.ok) {
+        const resultData = await resData.json();
+        setApprovals(resultData.data || resultData);
+      }
 
-  // === FUNGSI AKSI TAB 1 (DATA) ===
-  const handleApproveData = (id, nama) => {
-    // TODO: Ganti dengan fetch POST API ke BE (approve-update)
-    setApprovals(approvals.filter(item => item.id !== id));
-    toast.success(`Perubahan data ${nama} disetujui! Database utama diupdate.`);
+      // Narik Data Antrean Surat
+      const resSurat = await fetch('https://absensi-backend-production-6002.up.railway.app/api/admin/pending-surat');
+      if (resSurat.ok) {
+        const resultSurat = await resSurat.json();
+        setDocumentRequests(resultSurat.data || resultSurat);
+      }
+    } catch (error) {
+      console.error("Gagal menarik data antrean:", error);
+      toast.error('Gagal terhubung ke server.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRejectData = (id, nama) => {
-    // TODO: Ganti dengan fetch POST API ke BE (reject-update)
-    setApprovals(approvals.filter(item => item.id !== id));
-    toast.error(`Pengajuan perubahan ${nama} ditolak.`);
+  // Jalankan fetch pas halaman pertama kali dibuka
+  useEffect(() => {
+    fetchSemuaAntrean();
+  }, []);
+
+  // ==========================================
+  // 2. FUNGSI AKSI TAB 1: PERUBAHAN DATA
+  // ==========================================
+  const handleApproveData = async (id, nama) => {
+    const loadingToast = toast.loading(`Sedang ACC perubahan data ${nama}...`);
+    try {
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/approve-update/${id}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        setApprovals(approvals.filter(item => item.id !== id));
+        toast.success(`Data ${nama} berhasil diupdate ke profil utama!`, { id: loadingToast });
+      } else {
+        toast.error('Gagal ACC data di server.', { id: loadingToast });
+      }
+    } catch {
+      toast.error('Koneksi terputus.', { id: loadingToast });
+    }
   };
 
-  // === FUNGSI AKSI TAB 2 (SURAT) ===
-  const handleApproveSurat = (id, nama, jenis) => {
-    // TODO: Ganti dengan fetch POST API ke BE (approve-surat)
-    setDocumentRequests(documentRequests.filter(req => req.id !== id));
-    toast.success(`Pengajuan ${jenis} untuk ${nama} berhasil di-ACC! PDF siap diunduh karyawan.`);
+  const handleRejectData = async (id, nama) => {
+    const loadingToast = toast.loading(`Sedang menolak perubahan data ${nama}...`);
+    try {
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/reject-update/${id}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        setApprovals(approvals.filter(item => item.id !== id));
+        toast.success(`Usulan ${nama} berhasil ditolak.`, { id: loadingToast });
+      } else {
+        toast.error('Gagal menolak data.', { id: loadingToast });
+      }
+    } catch {
+      toast.error('Koneksi terputus.', { id: loadingToast });
+    }
   };
 
-  const handleRejectSurat = (id, nama) => {
-    // TODO: Ganti dengan fetch POST API ke BE (reject-surat)
-    setDocumentRequests(documentRequests.filter(req => req.id !== id));
-    toast.error(`Pengajuan surat untuk ${nama} ditolak.`);
+  // ==========================================
+  // 3. FUNGSI AKSI TAB 2: SURAT
+  // ==========================================
+  const handleApproveSurat = async (id, nama, jenis) => {
+    const loadingToast = toast.loading(`Sedang menerbitkan ${jenis} untuk ${nama}...`);
+    try {
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/approve-surat/${id}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        setDocumentRequests(documentRequests.filter(req => req.id !== id));
+        toast.success(`Surat berhasil diterbitkan! PDF siap diunduh.`, { id: loadingToast });
+      } else {
+        toast.error('Gagal ACC surat di server.', { id: loadingToast });
+      }
+    } catch {
+      toast.error('Koneksi terputus.', { id: loadingToast });
+    }
   };
+
+  const handleRejectSurat = async (id, nama) => {
+    const loadingToast = toast.loading(`Menolak pengajuan surat ${nama}...`);
+    try {
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/reject-surat/${id}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        setDocumentRequests(documentRequests.filter(req => req.id !== id));
+        toast.success(`Pengajuan surat ditolak.`, { id: loadingToast });
+      } else {
+        toast.error('Gagal memproses penolakan.', { id: loadingToast });
+      }
+    } catch  {
+      toast.error('Koneksi terputus.', { id: loadingToast });
+    }
+  };
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -71,7 +151,7 @@ export default function AdminApproval() {
           }`}
         >
           <UserCheck size={18} /> Antrean Perubahan Data 
-          {approvals.length > 0 && (
+          {!isLoading && approvals.length > 0 && (
             <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{approvals.length}</span>
           )}
         </button>
@@ -84,120 +164,127 @@ export default function AdminApproval() {
           }`}
         >
           <FileText size={18} /> Antrean Pengajuan Surat
-          {documentRequests.length > 0 && (
+          {!isLoading && documentRequests.length > 0 && (
             <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{documentRequests.length}</span>
           )}
         </button>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
+      <div className="bg-white p-6 rounded-xl shadow-sm border min-h-75">
         
-        {/* ==================== KONTEN TAB 1: PERUBAHAN DATA ==================== */}
-        {activeTab === 1 && (
-          <div className="animate-fade-in">
-            {approvals.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">
-                <CheckCircle size={48} className="mx-auto mb-3 text-gray-200" />
-                <p>Hore! Semua pengajuan data sudah diproses.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto border rounded-xl">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-                    <tr>
-                      <th className="px-6 py-4">Nama & NIK</th>
-                      <th className="px-6 py-4">Bagian yang Diubah</th>
-                      <th className="px-6 py-4">Tanggal Pengajuan</th>
-                      <th className="px-6 py-4 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {approvals.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-gray-800">{item.nama}</p>
-                          <p className="text-xs text-gray-500">{item.nik_karyawan}</p>
-                        </td>
-                        <td className="px-6 py-4 text-primary font-medium">{item.bagian}</td>
-                        <td className="px-6 py-4 text-gray-600">{item.tanggal}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex justify-center gap-2">
-                            <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Lihat Perbandingan Data">
-                              <Eye size={18} />
-                            </button>
-                            <button onClick={() => handleApproveData(item.id, item.nama)} className="p-2 text-white bg-green-500 hover:bg-green-600 rounded-lg shadow-sm" title="Setujui">
-                              <CheckCircle size={18} />
-                            </button>
-                            <button onClick={() => handleRejectData(item.id, item.nama)} className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm" title="Tolak">
-                              <XCircle size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {isLoading ? (
+           <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+             <p className="font-medium">Memuat data antrean dari server...</p>
+           </div>
+        ) : (
+          <>
+            {/* ==================== KONTEN TAB 1: PERUBAHAN DATA ==================== */}
+            {activeTab === 1 && (
+              <div className="animate-fade-in">
+                {approvals.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <CheckCircle size={48} className="mx-auto mb-3 text-gray-200" />
+                    <p>Hore! Semua pengajuan data sudah diproses.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border rounded-xl">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                        <tr>
+                          <th className="px-6 py-4">Nama & NIK</th>
+                          <th className="px-6 py-4">Bagian yang Diubah</th>
+                          <th className="px-6 py-4">Tanggal Pengajuan</th>
+                          <th className="px-6 py-4 text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {approvals.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4">
+                              {/* Pastikan property dari API BE sesuai, misal item.user.nama atau item.nama */}
+                              <p className="font-bold text-gray-800">{item.nama || item.nik_ktp}</p>
+                              <p className="text-xs text-gray-500">{item.nik_karyawan}</p>
+                            </td>
+                            <td className="px-6 py-4 text-primary font-medium">{item.bagian_diubah || 'Perubahan Profil'}</td>
+                            <td className="px-6 py-4 text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex justify-center gap-2">
+                                <button onClick={() => handleApproveData(item.id, item.nama)} className="p-2 text-white bg-green-500 hover:bg-green-600 rounded-lg shadow-sm" title="Setujui">
+                                  <CheckCircle size={18} />
+                                </button>
+                                <button onClick={() => handleRejectData(item.id, item.nama)} className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm" title="Tolak">
+                                  <XCircle size={18} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* ==================== KONTEN TAB 2: PENGAJUAN SURAT ==================== */}
-        {activeTab === 2 && (
-          <div className="animate-fade-in">
-            {documentRequests.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">
-                <CheckCircle size={48} className="mx-auto mb-3 text-gray-200" />
-                <p>Tidak ada antrean pengajuan surat baru.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto border rounded-xl">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-                    <tr>
-                      <th className="px-6 py-4">Nama Pemohon</th>
-                      <th className="px-6 py-4">Jenis Surat</th>
-                      <th className="px-6 py-4">Tanggal Pengajuan</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {documentRequests.map((req) => (
-                      <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-gray-800">{req.nama}</td>
-                        <td className="px-6 py-4 font-medium text-gray-700">{req.jenis_surat}</td>
-                        <td className="px-6 py-4 text-gray-600">{req.tanggal}</td>
-                        <td className="px-6 py-4">
-                          <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-orange-600 w-fit">
-                            <Clock size={12} /> Pending
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex justify-center gap-2">
-                            <button 
-                              onClick={() => handleApproveSurat(req.id, req.nama, req.jenis_surat)} 
-                              className="px-3 py-1.5 text-white bg-primary hover:brightness-110 rounded-lg shadow-sm flex items-center gap-1 font-medium text-xs" 
-                              title="Terbitkan Surat"
-                            >
-                              <Check size={16} /> ACC & Terbitkan
-                            </button>
-                            <button 
-                              onClick={() => handleRejectSurat(req.id, req.nama)} 
-                              className="p-1.5 text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm" 
-                              title="Tolak"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* ==================== KONTEN TAB 2: PENGAJUAN SURAT ==================== */}
+            {activeTab === 2 && (
+              <div className="animate-fade-in">
+                {documentRequests.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <CheckCircle size={48} className="mx-auto mb-3 text-gray-200" />
+                    <p>Tidak ada antrean pengajuan surat baru.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border rounded-xl">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                        <tr>
+                          <th className="px-6 py-4">Nama Pemohon</th>
+                          <th className="px-6 py-4">Jenis Surat</th>
+                          <th className="px-6 py-4">Tanggal Pengajuan</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4 text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {documentRequests.map((req) => (
+                          <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 font-bold text-gray-800">{req.nama || req.nik_ktp}</td>
+                            <td className="px-6 py-4 font-medium text-gray-700">{req.jenis_surat}</td>
+                            <td className="px-6 py-4 text-gray-600">{req.created_at ? new Date(req.created_at).toLocaleDateString('id-ID') : '-'}</td>
+                            <td className="px-6 py-4">
+                              <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-orange-600 w-fit">
+                                <Clock size={12} /> Pending
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex justify-center gap-2">
+                                <button 
+                                  onClick={() => handleApproveSurat(req.id, req.nama, req.jenis_surat)} 
+                                  className="px-3 py-1.5 text-white bg-primary hover:brightness-110 rounded-lg shadow-sm flex items-center gap-1 font-medium text-xs" 
+                                  title="Terbitkan Surat"
+                                >
+                                  <Check size={16} /> ACC & Terbitkan
+                                </button>
+                                <button 
+                                  onClick={() => handleRejectSurat(req.id, req.nama)} 
+                                  className="p-1.5 text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm" 
+                                  title="Tolak"
+                                >
+                                  <XCircle size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
 
       </div>
