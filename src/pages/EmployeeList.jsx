@@ -88,7 +88,7 @@ export default function EmployeeList() {
       
       try {
         // Tembak API pake nik_ktp sesuai permintaan BE
-        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/delete/${nik_ktp}`, {
+        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${nik_ktp}`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json' }
         });
