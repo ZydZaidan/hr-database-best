@@ -87,7 +87,7 @@ export default function Dashboard() {
             </p>
           </div>
           <button 
-            onClick={() => navigate('/add-employee')}
+            onClick={() => navigate('/tambah-karyawan')}
             className="px-5 py-2.5 bg-orange-600 text-white text-sm font-bold rounded-lg shadow-md hover:bg-orange-700 transition-colors whitespace-nowrap"
           >
             Isi Data Sekarang
