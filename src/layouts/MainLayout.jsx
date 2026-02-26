@@ -1,10 +1,22 @@
 import { Outlet } from 'react-router-dom';
-// PASTIKAN NAMA IMPORT SIDEBAR-NYA SESUAI SAMA YANG UDAH LO BENERIN KEMARIN (SidebarUI atau Sidebar)
 import Sidebar from '../components/SidebarUI'; 
 
 export default function MainLayout() {
-  // Cukup ambil role buat dikasih tau ke Sidebar & Header, gak perlu fungsi navigate lagi
-  const userRole = localStorage.getItem('userRole'); 
+  // Ambil data dari localStorage hasil login tadi
+  const userRole = localStorage.getItem('userRole') || ''; 
+  const userName = localStorage.getItem('userName') || 'User HRIS';
+  
+  // Ambil inisial nama buat avatar (contoh: Muh. Cholish -> MC)
+  const userInitial = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+
+  // Logika buat nentuin judul Header
+  const isAdmin = userRole.toLowerCase() === 'admin';
+  const headerTitle = isAdmin ? 'Portal HR Admin' : `Portal ${userRole.toUpperCase()}`;
 
   return (
     <div className="flex min-h-screen bg-gray-50 animate-fade-in">
@@ -12,22 +24,31 @@ export default function MainLayout() {
       <Sidebar role={userRole} />
       
       <div className="flex-1 ml-64 p-8">
-        <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border">
+        {/* TOPBAR / HEADER */}
+        <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">
-            {userRole === 'admin' ? 'Portal HR Admin' : 'Portal Karyawan'}
+            {headerTitle}
           </h2>
+          
           <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-bold text-gray-700">Muh. Cholish</p>
-              <p className="text-xs text-gray-500 uppercase">{userRole}</p>
+            <div className="text-right hidden md:block">
+              <p className="text-sm font-bold text-gray-700">{userName}</p>
+              <p className="text-[10px] text-gray-500 font-mono tracking-tighter uppercase px-2 bg-gray-100 rounded-full inline-block">
+                {userRole}
+              </p>
             </div>
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold shadow-md">
-              MC
+            
+            {/* AVATAR DINAMIS */}
+            <div className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-blue-50 ring-offset-2">
+              {userInitial}
             </div>
           </div>
         </div>
 
-        <Outlet />
+        {/* AREA KONTEN */}
+        <div className="animate-fade-in-up">
+          <Outlet />
+        </div>
       </div>
     </div>
   );
