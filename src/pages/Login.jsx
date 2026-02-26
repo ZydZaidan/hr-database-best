@@ -29,18 +29,19 @@ export default function Login() {
       const result = await response.json();
 
 // Di dalam fungsi handleSubmit Login.jsx
+// Di dalam fungsi handleSubmit Login.jsx pas sukses
 if (response.ok && result.success) {
     const { user, token } = result.data;
 
     localStorage.setItem('auth_token', token);
+    localStorage.setItem('userRole', user.status_pegawai); // Ambil status_pegawai (PKWTT/Magang)
     
-    // UBAH BAGIAN INI: 
-    // Ambil status_pegawai (Magang/PKWTT/dll) sebagai role navigasi
-    localStorage.setItem('userRole', user.status_pegawai.toLowerCase()); 
-    
+    // --- FIX: Simpan nama dari BE (user.name) ke kunci 'userName' ---
+    localStorage.setItem('userName', user.name); 
+    // ---------------------------------------------------------------
+
     localStorage.setItem('nik_ktp', user.nik_ktp);
     navigate('/');
-
       } else {
         // Handle error seperti: Akun belum aktif atau password salah
         toast.error(result.message || 'Login Gagal. Silakan cek kembali.');

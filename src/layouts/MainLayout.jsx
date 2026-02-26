@@ -3,12 +3,15 @@ import Sidebar from '../components/SidebarUI';
 
 export default function MainLayout() {
   // Ambil data dari localStorage hasil login tadi
-  const userRole = localStorage.getItem('userRole') || ''; 
+  const userRole = localStorage.getItem('userRole') || 'Guest'; 
+  
+  // FIX: Ambil dari kunci 'userName' (bukan 'name') sesuai yang kita set di Login.jsx
   const userName = localStorage.getItem('userName') || 'User HRIS';
   
   // Ambil inisial nama buat avatar (contoh: Muh. Cholish -> MC)
   const userInitial = userName
     .split(' ')
+    .filter(word => word.length > 0) // Filter spasi kosong
     .map((n) => n[0])
     .join('')
     .toUpperCase()
@@ -20,7 +23,6 @@ export default function MainLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 animate-fade-in">
-      {/* Lempar role-nya ke Sidebar biar menunya menyesuaikan */}
       <Sidebar role={userRole} />
       
       <div className="flex-1 ml-64 p-8">
