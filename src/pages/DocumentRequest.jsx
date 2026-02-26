@@ -64,9 +64,18 @@ export default function DocumentRequest() {
   };
 
   // 3. Fungsi Download jika Status Approved
-  const handleDownload = (jenis) => {
-    const endpoint = jenis === 'CV' ? 'download-cv' : 'download-skp';
-    window.open(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${endpoint}/${nikKtp}`, '_blank');
+  const handleDownload = (jenisSurat) => {
+    const nikKtp = localStorage.getItem('nik_ktp');
+    
+    // Tentukan endpoint berdasarkan jenis surat
+    // Sesuai kodingan BE lo: /api/karyawan/download-cv/{nik_ktp}
+    let endpoint = 'download-cv'; 
+    if (jenisSurat === 'SKP') endpoint = 'download-skp';
+
+    const downloadUrl = `https://absensi-backend-production-6002.up.railway.app/api/karyawan/${endpoint}/${nikKtp}`;
+    
+    // Buka di tab baru untuk download
+    window.open(downloadUrl, '_blank');
   };
 
   const StatusBadge = ({ status }) => {
@@ -130,16 +139,16 @@ export default function DocumentRequest() {
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {requests.length === 0 ? (
-                <tr><td colSpan="4" className="text-center py-10 text-gray-400 italic">Belum ada riwayat pengajuan.</td></tr>
-              ) : (
-                requests.map((req) => (
+              <tbody className="divide-y divide-gray-100">
+                {requests.map((req) => (
                   <tr key={req.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-500">{new Date(req.created_at).toLocaleDateString('id-ID')}</td>
+                    <td className="px-6 py-4 font-medium text-gray-500">
+                      {new Date(req.created_at).toLocaleDateString('id-ID')}
+                    </td>
                     <td className="px-6 py-4 text-gray-800 font-bold">{req.jenis_surat}</td>
                     <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
                     <td className="px-6 py-4 text-center">
+                      {/* TOMBOL UNDUH HANYA MUNCUL JIKA STATUS APPROVED */}
                       {req.status?.toLowerCase() === 'approved' && (
                         <button 
                           onClick={() => handleDownload(req.jenis_surat)}
@@ -150,9 +159,8 @@ export default function DocumentRequest() {
                       )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
+                ))}
+              </tbody>
           </table>
         </div>
       </div>
