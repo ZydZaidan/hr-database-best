@@ -45,6 +45,9 @@ export default function SidebarUI({ role }) {
               <Link to="/karyawan" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/karyawan') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <Users size={20} /> Kelola Data Karyawan
               </Link>
+              <Link to="/admin/payslip" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/admin/payslip') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                <Wallet size={20} /> Input Slip Gaji
+              </Link>
               <Link to="/rekap" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/rekap') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <FileText size={20} /> Rekap & Analisis
               </Link>
