@@ -36,12 +36,16 @@ if (response.ok && result.success) {
     // LOGIKA SAKTI: Kalau status_pegawai kosong (buat Admin), ambil dari 'peran'
     const roleDinamis = user.peran === 'admin' ? user.peran : user.status_pegawai;
     localStorage.setItem('userRole', roleDinamis); 
-    //
-    localStorage.setItem('user_data', JSON.stringify(result.user));
-    localStorage.setItem('nik_ktp', result.user.nik_ktp);
-    //
+
+    // localStorage.setItem('userName', user.name); 
+    // localStorage.setItem('nik_ktp', user.nik_ktp);
+
+    // SIMPAN DATA USER (Penting: ambil dari variabel 'user' hasil destructuring diatas)
+    localStorage.setItem('user_data', JSON.stringify(user));
+    localStorage.setItem('nik_ktp', user.nik_ktp); // Simpan NIK KTP untuk filter API
     localStorage.setItem('userName', user.name); 
-    localStorage.setItem('nik_ktp', user.nik_ktp);
+
+    toast.success('Login Berhasil!');
     navigate('/');
 
 
