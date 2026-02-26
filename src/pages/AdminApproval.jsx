@@ -146,32 +146,46 @@ export default function AdminApproval() {
 
 return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header Section */}
+      {/* 1. Header Card */}
       <div className="bg-white p-6 rounded-xl shadow-sm border flex items-center gap-4">
-        <div className="p-3 bg-blue-50 text-primary rounded-xl">
+        <div className="p-3 bg-blue-50 text-primary rounded-xl ring-4 ring-blue-50/50">
           <UserCheck size={28} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Approval System</h2>
-          <p className="text-gray-500 text-sm">Kelola semua antrean pengajuan PT. BEST dalam satu pintu.</p>
+          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Approval System</h2>
+          <p className="text-gray-500 text-sm font-medium">Kelola semua antrean pengajuan PT. BEST dalam satu pintu.</p>
         </div>
       </div>
 
-      {/* TABS Section */}
-      <div className="flex gap-2 border-b border-gray-200 px-2 overflow-x-auto bg-white rounded-t-xl">
-        <button onClick={() => setActiveTab(1)} className={`pb-3 px-6 font-bold transition-all text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 1 ? 'border-b-4 border-primary text-primary' : 'text-gray-400 hover:text-gray-600'}`}>
-          <UserCheck size={18} /> Data Pribadi 
-        </button>
-        <button onClick={() => setActiveTab(2)} className={`pb-3 px-6 font-bold transition-all text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 2 ? 'border-b-4 border-primary text-primary' : 'text-gray-400 hover:text-gray-600'}`}>
-          <FileText size={18} /> Pengajuan Surat
-        </button>
-        <button onClick={() => setActiveTab(3)} className={`pb-3 px-6 font-bold transition-all text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 3 ? 'border-b-4 border-primary text-primary' : 'text-gray-400 hover:text-gray-600'}`}>
-          <Activity size={18} /> Eviden Kinerja
-        </button>
+      {/* 2. Tab Navigation (Lebih Rapi) */}
+      <div className="flex gap-2 border-b border-gray-100 px-4 bg-white rounded-t-xl border-t border-x overflow-x-auto scrollbar-hide">
+        {[
+          { id: 1, label: 'Data Pribadi', icon: UserCheck, count: approvals.length },
+          { id: 2, label: 'Pengajuan Surat', icon: FileText, count: documentRequests.length },
+          { id: 3, label: 'Eviden Kinerja', icon: Activity, count: performanceRequests.length }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 py-4 px-4 text-sm font-bold transition-all border-b-2 whitespace-nowrap ${
+              activeTab === tab.id 
+                ? 'border-primary text-primary bg-blue-50/30' 
+                : 'border-transparent text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <tab.icon size={18} />
+            {tab.label}
+            {tab.count > 0 && (
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === tab.id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'}`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* MAIN CONTENT CARD */}
-      <div className="bg-white rounded-b-xl shadow-sm border-x border-b min-h-[400px] overflow-hidden">
+      {/* 3. Main Content Card (Tabel Konsisten) */}
+      <div className="bg-white rounded-b-xl shadow-sm border-x border-b overflow-hidden min-h-100">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32 text-gray-400">
             <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -179,107 +193,81 @@ return (
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse">
-              {/* TABLE HEAD - Disesuaikan per Tab */}
-              <thead className="bg-gray-50 text-gray-600 border-b uppercase text-[11px] tracking-wider font-bold">
-                {activeTab === 1 && (
-                  <tr>
-                    <th className="px-6 py-4">Karyawan</th>
-                    <th className="px-6 py-4">Detail Perubahan</th>
-                    <th className="px-6 py-4 text-center">Aksi</th>
-                  </tr>
-                )}
-                {activeTab === 2 && (
-                  <tr>
-                    <th className="px-6 py-4">Pemohon</th>
-                    <th className="px-6 py-4">Jenis Surat</th>
-                    <th className="px-6 py-4 text-center">Aksi</th>
-                  </tr>
-                )}
-                {activeTab === 3 && (
-                  <tr>
-                    <th className="px-6 py-4">Karyawan</th>
-                    <th className="px-6 py-4">Bulan</th>
-                    <th className="px-6 py-4 text-center">Target</th>
-                    <th className="px-6 py-4 text-center">Realisasi</th>
-                    <th className="px-6 py-4 text-center">Capaian</th>
-                    <th className="px-6 py-4 text-center">Aksi</th>
-                  </tr>
-                )}
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50/50 text-gray-500 font-bold border-b text-xs uppercase tracking-wider">
+                <tr>
+                  {/* Kondisional Header Berdasarkan Tab */}
+                  <th className="px-6 py-4">Karyawan / Pemohon</th>
+                  {activeTab === 1 && <th className="px-6 py-4">Detail Perubahan</th>}
+                  {activeTab === 2 && <th className="px-6 py-4">Jenis Surat</th>}
+                  {activeTab === 3 && (
+                    <>
+                      <th className="px-6 py-4 text-center">Bulan</th>
+                      <th className="px-6 py-4 text-center">Pencapaian</th>
+                    </>
+                  )}
+                  <th className="px-6 py-4 text-center">Aksi Approval</th>
+                </tr>
               </thead>
-
-              {/* TABLE BODY - Render Kondisional berdasarkan State */}
               <tbody className="divide-y divide-gray-100">
-                {/* TAB 1: DATA PRIBADI */}
-                {activeTab === 1 && approvals.length > 0 && approvals.map((item) => (
+                {/* --- TAB 1: DATA PRIBADI --- */}
+                {activeTab === 1 && approvals.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-bold text-gray-800">{item.nama}</p>
-                      <p className="text-[10px] text-gray-400 font-mono uppercase">{item.nik_ktp}</p>
+                      <p className="text-xs text-gray-400 font-medium">NIK: {item.nik_ktp}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="bg-blue-50 px-3 py-1.5 rounded-lg text-[11px] text-blue-700 border border-blue-100 inline-block font-medium">
-                        {item.proposed_data && Object.keys(item.proposed_data).length > 0 ? "⚠️ Perubahan Profil Baru" : "N/A"}
+                      <div className="bg-blue-50 p-2 rounded-lg text-[10px] text-blue-700 font-bold inline-block border border-blue-100">
+                        Usulan Perubahan Profil
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button onClick={() => handleApproveData(item.id, item.nama)} className="p-2.5 text-white bg-green-500 rounded-xl hover:bg-green-600 shadow-sm transition-all active:scale-95">
-                        <CheckCircle size={18} />
+                      <button onClick={() => handleApproveData(item.id, item.nama)} className="p-2.5 text-white bg-green-500 rounded-xl hover:bg-green-600 shadow-sm active:scale-95 transition-all">
+                        <Check size={18} />
                       </button>
                     </td>
                   </tr>
                 ))}
 
-                {/* TAB 2: PENGAJUAN SURAT */}
-                {activeTab === 2 && documentRequests.length > 0 && documentRequests.map((req) => (
+                {/* --- TAB 2: PENGAJUAN SURAT --- */}
+                {activeTab === 2 && documentRequests.map((req) => (
                   <tr key={req.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-gray-800">{req.nama}</td>
-                    <td className="px-6 py-4 font-medium text-gray-600">{req.jenis_surat}</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 rounded-md text-gray-600 font-bold text-xs">{req.jenis_surat}</span></td>
                     <td className="px-6 py-4">
-                      <div className="flex justify-center gap-3">
-                        <button onClick={() => handleApproveSurat(req.id, req.nama, req.jenis_surat)} className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:brightness-110 shadow-sm transition-all active:scale-95 flex items-center gap-1">
-                          <Check size={14} /> ACC
-                        </button>
-                        <button onClick={() => handleRejectSurat(req.id, req.nama)} className="p-2 text-red-500 border border-red-100 bg-red-50 hover:bg-red-500 hover:text-white rounded-xl transition-all active:scale-95">
-                          <XCircle size={18} />
-                        </button>
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => handleApproveSurat(req.id, req.nama, req.jenis_surat)} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:brightness-110 shadow-sm transition-all active:scale-95">ACC & CETAK</button>
+                        <button onClick={() => handleRejectSurat(req.id, req.nama)} className="p-2 text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-lg border border-red-100 transition-all"><XCircle size={18} /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
 
-                {/* TAB 3: EVIDEN KINERJA */}
-                {activeTab === 3 && performanceRequests.length > 0 && performanceRequests.map((perf) => (
+                {/* --- TAB 3: EVIDEN KINERJA --- */}
+                {activeTab === 3 && performanceRequests.map((perf) => (
                   <tr key={perf.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-gray-800">{perf.nama}</td>
-                    <td className="px-6 py-4 text-gray-600">{perf.bulan}</td>
-                    <td className="px-6 py-4 text-center">{perf.target}</td>
-                    <td className="px-6 py-4 text-center font-bold">{perf.realisasi}</td>
+                    <td className="px-6 py-4 text-center font-medium text-gray-500">{perf.bulan}</td>
                     <td className="px-6 py-4 text-center">
-                      <span className="px-2.5 py-1 bg-blue-50 text-primary rounded-lg font-black text-xs border border-blue-100">{perf.capaian}%</span>
+                      <span className="px-3 py-1 bg-blue-50 text-primary rounded-full font-black text-xs border border-blue-100">{perf.capaian}%</span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex justify-center gap-3">
-                        <button onClick={() => handleApprovePerformance(perf.id, perf.nama)} className="p-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 shadow-sm transition-all active:scale-95">
-                          <Check size={18} />
-                        </button>
-                        <button onClick={() => handleRejectPerformance(perf.id, perf.nama)} className="p-2.5 bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white rounded-xl transition-all active:scale-95">
-                          <XCircle size={18} />
-                        </button>
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => handleApprovePerformance(perf.id, perf.nama)} className="p-2.5 text-white bg-green-500 rounded-xl shadow-sm hover:bg-green-600 active:scale-95 transition-all"><Check size={18}/></button>
+                        <button onClick={() => handleRejectPerformance(perf.id, perf.nama)} className="p-2.5 text-red-500 bg-red-50 rounded-xl hover:bg-red-500 hover:text-white transition-all"><XCircle size={18}/></button>
                       </div>
                     </td>
                   </tr>
                 ))}
 
-                {/* EMPTY STATE - Jika data kosong di tab manapun */}
-                {((activeTab === 1 && approvals.length === 0) || 
-                  (activeTab === 2 && documentRequests.length === 0) || 
-                  (activeTab === 3 && performanceRequests.length === 0)) && (
+                {/* Empty State Dinamis */}
+                {((activeTab === 1 && approvals.length === 0) || (activeTab === 2 && documentRequests.length === 0) || (activeTab === 3 && performanceRequests.length === 0)) && (
                   <tr>
-                    <td colSpan="6" className="text-center py-24 text-gray-400 italic bg-gray-50/30">
-                      <div className="flex flex-col items-center gap-2">
-                        <Clock size={32} className="opacity-20" />
-                        <p>Belum ada antrean masuk untuk bagian ini.</p>
+                    <td colSpan="5" className="py-20 text-center">
+                      <div className="flex flex-col items-center text-gray-400 gap-2">
+                        <Clock size={40} className="opacity-20" />
+                        <p className="italic font-medium text-sm">Tidak ada antrean pengajuan pada kategori ini.</p>
                       </div>
                     </td>
                   </tr>
