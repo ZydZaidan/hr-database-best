@@ -13,6 +13,7 @@ export default function EmployeeEditProfile() {
   const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
 
   const nikKtp = localStorage.getItem('nik_ktp');
+  const token = localStorage.getItem('auth_token'); // Tambahkan ini!
   const role = localStorage.getItem('userRole') || '';
   const isPKWTT = role.toLowerCase() === 'pkwtt';
 
@@ -46,9 +47,17 @@ export default function EmployeeEditProfile() {
   useEffect(() => {
     const fetchCurrentData = async () => {
       if (!nikKtp) { setIsLoading(false); return; }
+      
       try {
-        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${nikKtp}`);
+        // const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${nikKtp}`);
+        const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${nikKtp}`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`, // Menambahkan Token
+            'Accept': 'application/json'
+          }
+        });
         const result = await response.json();
+
         if (response.ok && result.data) {
           const emp = result.data;
           const ttlSplit = emp.ttl ? emp.ttl.split(', ') : ['', ''];
@@ -69,10 +78,14 @@ export default function EmployeeEditProfile() {
             kompetensi_json: emp.kompetensi_json || [],
           });
         }
-      } catch (err) { console.error(err); } finally { setIsLoading(false); }
+      } catch (err) { 
+        console.error(err); 
+      } finally { 
+        setIsLoading(false); 
+      }
     };
     fetchCurrentData();
-  }, [nikKtp, reset]);
+  }, [nikKtp, reset, token  ]);
 
   const onSubmit = async (data) => {
     const loadingToast = toast.loading('Mengirim usulan perubahan ke Admin...');

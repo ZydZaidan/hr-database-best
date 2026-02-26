@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { FileSignature, Send, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -14,32 +14,29 @@ export default function DocumentRequest() {
   // ==========================================
   // 1. FUNGSI AMBIL RIWAYAT (Sesuai IzinController@historySurat)
   // ==========================================
-  const fetchRiwayat = async () => {
-    setIsLoading(true);
-    try {
-      // Menggunakan endpoint /api/history-surat sesuai api.php
-      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/history-surat`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-      const result = await response.json();
-      
-      // BE mengirim objek { success: true, data: [...] }
-      if (response.ok && result.success) {
-        setRequests(result.data); 
+  const fetchRiwayat = useCallback(async () => {
+  setIsLoading(true);
+  try {
+    const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/history-surat`, {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
       }
-    } catch (error) {
-      console.error("Gagal memuat riwayat:", error);
-    } finally {
-      setIsLoading(false);
+    });
+    const result = await response.json();
+    if (response.ok && result.success) {
+      setRequests(result.data); 
     }
-  };
+  } catch (error) {
+    console.error("Gagal memuat riwayat:", error);
+  } finally {
+    setIsLoading(false);
+  }
+}, [token]);
 
   useEffect(() => {
     fetchRiwayat();
-  }, []);
+  }, [fetchRiwayat]);
 
   // ==========================================
   // 2. FUNGSI KIRIM PENGAJUAN (Sesuai IzinController@storeSurat)
