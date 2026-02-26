@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Users, Wallet, Settings, LogOut, CalendarCheck, FileText, Activity, CheckCircle } from 'lucide-react';
-
+import LogoBest from '../assets/images/logobest.png';
 export default function SidebarUI({ role }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,8 +26,11 @@ export default function SidebarUI({ role }) {
     <div className="w-64 bg-white border-r h-screen flex flex-col justify-between fixed top-0 left-0 shadow-sm">
       <div>
         <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-primary">PT. BEST</h1>
-          <p className="text-xs text-gray-500 mt-1">HRIS System</p>
+          <img 
+              src={LogoBest} 
+              alt="Logo PT. BEST" 
+              className="h-12 w-auto object-contain mb-1" 
+            />
         </div>
 
         <nav className="p-4 space-y-2">

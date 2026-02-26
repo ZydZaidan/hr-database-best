@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
-
+import LogoBest from '../assets/images/logobest.png';
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -29,25 +29,21 @@ export default function Login() {
       const result = await response.json();
 
 if (response.ok && result.success) {
-    const { user, token } = result.data;
+const { user, token } = result.data; // Destructuring data dari result.data
 
     localStorage.setItem('auth_token', token);
+    localStorage.setItem('user_data', JSON.stringify(user));
+    if (user.nik_ktp) {
+        localStorage.setItem('nik_ktp', user.nik_ktp); // Biar tetep HIJAU
+    }
+    localStorage.setItem('userName', user.name);
     
-    // LOGIKA SAKTI: Kalau status_pegawai kosong (buat Admin), ambil dari 'peran'
+    // Simpan role untuk Sidebar
     const roleDinamis = user.peran === 'admin' ? user.peran : user.status_pegawai;
     localStorage.setItem('userRole', roleDinamis); 
 
-    // localStorage.setItem('userName', user.name); 
-    // localStorage.setItem('nik_ktp', user.nik_ktp);
-
-    // SIMPAN DATA USER (Penting: ambil dari variabel 'user' hasil destructuring diatas)
-    localStorage.setItem('user_data', JSON.stringify(user));
-    localStorage.setItem('nik_ktp', user.nik_ktp); // Simpan NIK KTP untuk filter API
-    localStorage.setItem('userName', user.name); 
-
     toast.success('Login Berhasil!');
     navigate('/');
-
 
       } else {
         // Handle error seperti: Akun belum aktif atau password salah
@@ -66,7 +62,11 @@ if (response.ok && result.success) {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
         <div className="p-8">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-primary">PT. BEST</h1>
+          <img 
+              src={LogoBest} 
+              alt="Logo PT. BEST" 
+              className="h-16 mx-auto mb-2 object-contain" 
+            />
             <p className="text-gray-500 mt-2">Human Resource Information System</p>
           </div>
 
