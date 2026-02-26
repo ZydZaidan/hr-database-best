@@ -30,18 +30,23 @@ export default function Login() {
 
 // Di dalam fungsi handleSubmit Login.jsx
 // Di dalam fungsi handleSubmit Login.jsx pas sukses
+// Di dalam Login.jsx pas login sukses
 if (response.ok && result.success) {
     const { user, token } = result.data;
 
     localStorage.setItem('auth_token', token);
-    localStorage.setItem('userRole', user.status_pegawai); // Ambil status_pegawai (PKWTT/Magang)
     
-    // --- FIX: Simpan nama dari BE (user.name) ke kunci 'userName' ---
-    localStorage.setItem('userName', user.name); 
-    // ---------------------------------------------------------------
+    // --- FIX LOGIKA ROLE DI SINI ---
+    // Cek status_pegawai dulu, kalau null/kosong baru ambil dari kolom 'peran'
+    const roleAktif = user.status_pegawai || user.peran;
+    localStorage.setItem('userRole', roleAktif); 
+    // -------------------------------
 
+    localStorage.setItem('userName', user.name); 
     localStorage.setItem('nik_ktp', user.nik_ktp);
+    
     navigate('/');
+
       } else {
         // Handle error seperti: Akun belum aktif atau password salah
         toast.error(result.message || 'Login Gagal. Silakan cek kembali.');
