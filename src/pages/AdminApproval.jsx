@@ -124,10 +124,30 @@ const fetchSemuaAntrean = async () => {
                           <p className="text-xs text-gray-500 font-mono">{item.nik_ktp}</p>
                         </td>
                         <td className="px-6 py-4 text-xs">
-                           <div className="bg-blue-50 p-2 rounded-lg text-primary border border-blue-100">
-                             {item.proposed_data?.alamat_domisili && <p>🏠 {item.proposed_data.alamat_domisili}</p>}
-                             {item.proposed_data?.no_hp && <p>📞 {item.proposed_data.no_hp}</p>}
-                           </div>
+                          <div className="bg-blue-50 p-3 rounded-xl text-primary border border-blue-100 space-y-2">
+                            {item.proposed_data && Object.entries(item.proposed_data).length > 0 ? (
+                              Object.entries(item.proposed_data).map(([key, value]) => {
+                                // Kita filter supaya field teknis atau yang kosong nggak tampil
+                                if (!value || key === 'nik_ktp' || key === 'id') return null;
+
+                                return (
+                                  <div key={key} className="flex flex-col border-b border-blue-200 last:border-0 pb-1 mb-1">
+                                    <span className="font-bold uppercase text-[9px] text-blue-400">
+                                      {key.replace(/_/g, ' ')} {/* Ganti underscore jadi spasi biar rapi */}
+                                    </span>
+                                    <span className="text-gray-700">
+                                      {/* Cek kalau isinya array/object (seperti riwayat karir), kita tampilkan jumlahnya saja */}
+                                      {typeof value === 'object' 
+                                        ? `${Array.isArray(value) ? value.length : 1} Data Baru ditambahkan` 
+                                        : value}
+                                    </span>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <span className="text-gray-400 italic">Tidak ada detail perubahan</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <button onClick={() => handleApproveData(item.id, item.nama)} className="p-2 text-white bg-green-500 rounded-lg"><CheckCircle size={18} /></button>
