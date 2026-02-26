@@ -11,17 +11,20 @@ export default function DocumentRequest() {
   const nikKtp = localStorage.getItem('nik_ktp');
   const token = localStorage.getItem('auth_token');
 
-  // 1. Ambil Riwayat Pengajuan Asli dari DB
+  // 1. Ambil Riwayat Pengajuan Asli dari Endpoint /api/history-surat
   const fetchRiwayat = async () => {
     setIsLoading(true);
     try {
-      // Kita asumsikan ada endpoint untuk cek status surat per user
-      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/surat/${nikKtp}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/history-surat`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
       });
       const result = await response.json();
       if (response.ok) {
-        setRequests(result);
+        // BE mengembalikan data dalam property 'data' atau array langsung
+        setRequests(result.data || result);
       }
     } catch (error) {
       console.error("Gagal memuat riwayat:", error);
@@ -34,7 +37,7 @@ export default function DocumentRequest() {
     fetchRiwayat();
   }, []);
 
-  // 2. Kirim Pengajuan Baru ke Backend
+  // 2. Kirim Pengajuan Baru dengan field 'alasan'
   const onSubmit = async (data) => {
     const loadingToast = toast.loading('Mengirim pengajuan...');
     try {
@@ -42,21 +45,23 @@ export default function DocumentRequest() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           nik_ktp: nikKtp,
-          jenis_surat: data.jenisSurat, // SKP, CV, atau MAGANG
-          keperluan: data.keperluan
+          jenis_surat: data.jenisSurat, 
+          alasan: data.keperluan // Perubahan dari 'keperluan' ke 'alasan' sesuai instruksi BE
         })
       });
 
       if (response.ok) {
         toast.success('Pengajuan berhasil dikirim!', { id: loadingToast });
         reset();
-        fetchRiwayat(); // Refresh tabel
+        fetchRiwayat(); 
       } else {
-        toast.error('Gagal mengirim pengajuan', { id: loadingToast });
+        const err = await response.json();
+        toast.error(err.message || 'Gagal mengirim pengajuan', { id: loadingToast });
       }
     } catch {
       toast.error('Koneksi bermasalah', { id: loadingToast });
@@ -67,14 +72,11 @@ export default function DocumentRequest() {
   const handleDownload = (jenisSurat) => {
     const nikKtp = localStorage.getItem('nik_ktp');
     
-    // Tentukan endpoint berdasarkan jenis surat
-    // Sesuai kodingan BE lo: /api/karyawan/download-cv/{nik_ktp}
     let endpoint = 'download-cv'; 
     if (jenisSurat === 'SKP') endpoint = 'download-skp';
 
     const downloadUrl = `https://absensi-backend-production-6002.up.railway.app/api/karyawan/${endpoint}/${nikKtp}`;
     
-    // Buka di tab baru untuk download
     window.open(downloadUrl, '_blank');
   };
 
@@ -139,16 +141,18 @@ export default function DocumentRequest() {
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
-              <tbody className="divide-y divide-gray-100">
-                {requests.map((req) => (
+            <tbody className="divide-y divide-gray-100">
+              {requests.length === 0 ? (
+                <tr><td colSpan="4" className="text-center py-10 text-gray-400 italic">Belum ada riwayat pengajuan.</td></tr>
+              ) : (
+                requests.map((req) => (
                   <tr key={req.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-gray-500">
-                      {new Date(req.created_at).toLocaleDateString('id-ID')}
+                      {req.created_at ? new Date(req.created_at).toLocaleDateString('id-ID') : '-'}
                     </td>
                     <td className="px-6 py-4 text-gray-800 font-bold">{req.jenis_surat}</td>
                     <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
                     <td className="px-6 py-4 text-center">
-                      {/* TOMBOL UNDUH HANYA MUNCUL JIKA STATUS APPROVED */}
                       {req.status?.toLowerCase() === 'approved' && (
                         <button 
                           onClick={() => handleDownload(req.jenis_surat)}
@@ -159,8 +163,9 @@ export default function DocumentRequest() {
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
       </div>
