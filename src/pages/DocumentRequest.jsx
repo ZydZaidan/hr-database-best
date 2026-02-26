@@ -1,41 +1,87 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { FileSignature, Send, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { FileSignature, Send, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function DocumentRequest() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const [requests, setRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Data riwayat pengajuan dummy
-  const [requests, setRequests] = useState([
-    { id: 1, tanggal: '2026-02-15', jenis: 'Surat Keterangan Kerja', keperluan: 'Pembuatan Visa', status: 'Disetujui' },
-    { id: 2, tanggal: '2026-02-10', jenis: 'Slip Gaji Legalisir', keperluan: 'KPR', status: 'Ditolak' },
-  ]);
+  const nikKtp = localStorage.getItem('nik_ktp');
+  const token = localStorage.getItem('auth_token');
 
-  const onSubmit = (data) => {
-    const newRequest = {
-      id: crypto.randomUUID(),      tanggal: new Date().toISOString().split('T')[0],
-      jenis: data.jenisSurat,
-      keperluan: data.keperluan,
-      status: 'Pending'
-    };
-    
-    setRequests([newRequest, ...requests]);
-    toast.success('Pengajuan surat berhasil dikirim ke Admin HR!');
-    reset();
+  // 1. Ambil Riwayat Pengajuan Asli dari DB
+  const fetchRiwayat = async () => {
+    setIsLoading(true);
+    try {
+      // Kita asumsikan ada endpoint untuk cek status surat per user
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/surat/${nikKtp}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setRequests(result);
+      }
+    } catch (error) {
+      console.error("Gagal memuat riwayat:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRiwayat();
+  }, []);
+
+  // 2. Kirim Pengajuan Baru ke Backend
+  const onSubmit = async (data) => {
+    const loadingToast = toast.loading('Mengirim pengajuan...');
+    try {
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/pengajuan-surat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nik_ktp: nikKtp,
+          jenis_surat: data.jenisSurat, // SKP, CV, atau MAGANG
+          keperluan: data.keperluan
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Pengajuan berhasil dikirim!', { id: loadingToast });
+        reset();
+        fetchRiwayat(); // Refresh tabel
+      } else {
+        toast.error('Gagal mengirim pengajuan', { id: loadingToast });
+      }
+    } catch {
+      toast.error('Koneksi bermasalah', { id: loadingToast });
+    }
+  };
+
+  // 3. Fungsi Download jika Status Approved
+  const handleDownload = (jenis) => {
+    const endpoint = jenis === 'CV' ? 'download-cv' : 'download-skp';
+    window.open(`https://absensi-backend-production-6002.up.railway.app/api/karyawan/${endpoint}/${nikKtp}`, '_blank');
   };
 
   const StatusBadge = ({ status }) => {
-    switch(status) {
-      case 'Disetujui': return <span className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium"><CheckCircle size={12}/> Disetujui</span>;
-      case 'Ditolak': return <span className="flex items-center gap-1 text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium"><XCircle size={12}/> Ditolak</span>;
-      default: return <span className="flex items-center gap-1 text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium"><Clock size={12}/> Pending</span>;
+    switch(status?.toLowerCase()) {
+      case 'approved': 
+        return <span className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium"><CheckCircle size={12}/> Disetujui</span>;
+      case 'rejected': 
+        return <span className="flex items-center gap-1 text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium"><XCircle size={12}/> Ditolak</span>;
+      default: 
+        return <span className="flex items-center gap-1 text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium"><Clock size={12}/> Pending</span>;
     }
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Form Pengajuan */}
       <div className="bg-white p-6 rounded-xl shadow-sm border">
         <div className="flex items-center gap-3 border-b pb-4 mb-4">
           <FileSignature className="text-primary" size={24} />
@@ -46,55 +92,66 @@ export default function DocumentRequest() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Jenis Surat</label>
-              <select {...register('jenisSurat', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none">
+              <select {...register('jenisSurat', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm">
                 <option value="">-- Pilih Jenis Surat --</option>
-                <option value="Surat Keterangan Kerja">Surat Keterangan Kerja</option>
-                <option value="Slip Gaji Legalisir">Slip Gaji Legalisir</option>
-                <option value="Surat Keterangan Domisili">Surat Rekomendasi</option>
+                <option value="CV">Curriculum Vitae (CV) Otomatis</option>
+                <option value="SKP">Surat Keterangan Penghasilan (SKP)</option>
+                <option value="MAGANG">Surat Keterangan Magang</option>
               </select>
               {errors.jenisSurat && <span className="text-xs text-red-500">Wajib dipilih</span>}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Tujuan / Keperluan</label>
-              <input {...register('keperluan', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Pengajuan KPR / Pembuatan Visa" />
+              <input {...register('keperluan', { required: true })} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="Contoh: Bank / KPR / Visa" />
               {errors.keperluan && <span className="text-xs text-red-500">Wajib diisi</span>}
             </div>
           </div>
           
           <div className="flex justify-end pt-2">
-            <button type="submit" className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg hover:brightness-110 font-medium">
+            <button type="submit" className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg hover:brightness-110 font-bold shadow-md transition-all">
               <Send size={18} /> Kirim Pengajuan
             </button>
           </div>
         </form>
       </div>
 
-      {/* Tabel Riwayat Pengajuan */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-800">Riwayat Pengajuan Saya</h3>
+        <div className="p-6 border-b flex justify-between items-center">
+          <h3 className="text-lg font-bold text-gray-800">Riwayat Pengajuan</h3>
+          {isLoading && <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+            <thead className="bg-gray-50 text-gray-600 font-bold border-b">
               <tr>
-                <th className="px-6 py-4">Tanggal Pengajuan</th>
+                <th className="px-6 py-4">Tanggal</th>
                 <th className="px-6 py-4">Jenis Surat</th>
-                <th className="px-6 py-4">Keperluan</th>
                 <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {requests.map((req) => (
-                <tr key={req.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium">{req.tanggal}</td>
-                  <td className="px-6 py-4 text-gray-700">{req.jenis}</td>
-                  <td className="px-6 py-4 text-gray-600">{req.keperluan}</td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={req.status} />
-                  </td>
-                </tr>
-              ))}
+              {requests.length === 0 ? (
+                <tr><td colSpan="4" className="text-center py-10 text-gray-400 italic">Belum ada riwayat pengajuan.</td></tr>
+              ) : (
+                requests.map((req) => (
+                  <tr key={req.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-500">{new Date(req.created_at).toLocaleDateString('id-ID')}</td>
+                    <td className="px-6 py-4 text-gray-800 font-bold">{req.jenis_surat}</td>
+                    <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
+                    <td className="px-6 py-4 text-center">
+                      {req.status?.toLowerCase() === 'approved' && (
+                        <button 
+                          onClick={() => handleDownload(req.jenis_surat)}
+                          className="flex items-center gap-1 mx-auto px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-600 hover:text-white transition-all text-xs font-bold"
+                        >
+                          <Download size={14}/> Unduh PDF
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
