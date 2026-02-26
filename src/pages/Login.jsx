@@ -38,7 +38,7 @@ if (response.ok && result.success) {
     localStorage.setItem('auth_token', token);
     
     // LOGIKA SAKTI: Kalau status_pegawai kosong (buat Admin), ambil dari 'peran'
-    const roleDinamis = user.status_pegawai || user.peran;
+    const roleDinamis = user.peran === 'admin' ? user.peran : user.status_pegawai;
     localStorage.setItem('userRole', roleDinamis); 
 
     localStorage.setItem('userName', user.name); 
