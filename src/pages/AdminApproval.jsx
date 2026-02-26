@@ -78,6 +78,70 @@ const fetchSemuaAntrean = async () => {
       toast.error('Koneksi terputus.', { id: loadingToast });
     }
   };
+  // --- Tambahkan fungsi ini di bawah handleApproveData ---
+
+  const handleApproveSurat = async (id, namaKaryawan, jenisSurat) => {
+    const loading = toast.loading(`Menghasilkan ${jenisSurat} & Menyimpan Data...`);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/approve-surat/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+      });
+
+      if (response.ok) {
+        // PROSES DOWNLOAD PDF SESUAI INSTRUKSI BE
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Surat_${jenisSurat}_${namaKaryawan}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        // Hapus dari state lokal agar antrean berkurang
+        setDocumentRequests(documentRequests.filter(req => req.id !== id));
+        toast.success('Surat Berhasil Diterbitkan!', { id: loading });
+      } else {
+        toast.error('Gagal memproses surat. Cek koneksi server.', { id: loading });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Terjadi kesalahan sistem.', { id: loading });
+    }
+  };
+
+  const handleRejectSurat = async (id, nama) => {
+    const note = prompt(`Masukkan alasan penolakan untuk ${nama}:`);
+    if (!note) return;
+
+    const loading = toast.loading('Menolak pengajuan surat...');
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/reject-surat/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ note }) // BE minta field 'note'
+      });
+
+      if (response.ok) {
+        setDocumentRequests(documentRequests.filter(req => req.id !== id));
+        toast.success(`Pengajuan surat ${nama} ditolak.`, { id: loading });
+      } else {
+        toast.error('Gagal memproses penolakan.', { id: loading });
+      }
+    } catch {
+      toast.error('Koneksi terputus.', { id: loading });
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -169,11 +233,24 @@ const fetchSemuaAntrean = async () => {
                   <tbody className="divide-y divide-gray-100">
                     {documentRequests.map((req) => (
                       <tr key={req.id}>
-                        {/* Poin 1: Mapping Nama Langsung dari req.nama */}
                         <td className="px-6 py-4 font-bold text-gray-800">{req.nama}</td>
                         <td className="px-6 py-4 font-medium text-gray-700">{req.jenis_surat}</td>
                         <td className="px-6 py-4 text-center">
-                          <button className="px-3 py-1.5 text-white bg-primary rounded-lg text-xs font-bold"><Check size={16} /> Terbitkan</button>
+                          <div className="flex justify-center gap-2">
+                            <button 
+                              onClick={() => handleApproveSurat(req.id, req.nama, req.jenis_surat)}
+                              className="px-3 py-1.5 text-white bg-primary rounded-lg text-xs font-bold flex items-center gap-1 hover:brightness-110 shadow-sm"
+                            >
+                              <Check size={16} /> ACC & Terbitkan
+                            </button>
+                            <button 
+                              onClick={() => handleRejectSurat(req.id, req.nama)}
+                              className="p-1.5 text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-lg shadow-sm"
+                              title="Tolak Pengajuan"
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
