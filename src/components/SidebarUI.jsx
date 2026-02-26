@@ -7,17 +7,23 @@ export default function SidebarUI({ role }) {
 
   const isActive = (path) => location.pathname === path;
 
-  // === LOGIKA ROLE BARU ===
-  // Mengelompokkan semua jenis pegawai selain admin biar gampang
-const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role?.toLowerCase());
-  // Fungsi Logout
+  // === LOGIKA ROLE BARU (Fix Case Sensitive) ===
+  // Kita paksa ke lowercase biar mau di DB tulisan 'Magang' atau 'magang' tetep tembus
+  const normalizedRole = role?.toLowerCase();
+  
+  // Cek apakah dia admin berdasarkan kolom 'peran' di BE
+  const isAdmin = normalizedRole === 'admin';
+  
+  // Cek apakah dia pegawai berdasarkan kolom 'status_pegawai' di BE
+  const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(normalizedRole);
+
   const handleLogout = () => {
-    localStorage.removeItem('userRole'); // Hapus sesi login
-    navigate('/login'); // Balik ke halaman login
+    localStorage.clear(); // Hapus semua sesi (Token, Role, NIK)
+    navigate('/login');
   };
 
   return (
-    <div className="w-64 bg-white border-r h-screen flex flex-col justify-between fixed top-0 left-0">
+    <div className="w-64 bg-white border-r h-screen flex flex-col justify-between fixed top-0 left-0 shadow-sm">
       <div>
         <div className="p-6 border-b">
           <h1 className="text-2xl font-bold text-primary">PT. BEST</h1>
@@ -28,12 +34,12 @@ const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role?
           {/* =========================================
               MENU KHUSUS ADMIN
               ========================================= */}
-          {role === 'admin' && (
+          {isAdmin && (
             <>
               <Link to="/" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <Home size={20} /> Dashboard Direksi
               </Link>
-              <Link to="/karyawan" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/karyawan') || isActive('/tambah-karyawan') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <Link to="/karyawan" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/karyawan') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <Users size={20} /> Kelola Data Karyawan
               </Link>
               <Link to="/rekap" className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive('/rekap') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
@@ -46,7 +52,7 @@ const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role?
           )}
 
           {/* =========================================
-              MENU KHUSUS PEGAWAI (PKWTT, PKWT, Magang, dll)
+              MENU KHUSUS PEGAWAI (Termasuk Magang)
               ========================================= */}
           {isPegawai && (
             <>
@@ -68,18 +74,16 @@ const isPegawai = ['pkwtt', 'pkwt', 'thl', 'magang', 'konsultan'].includes(role?
             </>
           )}
 
-          {/* Menu Pengaturan (Bisa diakses Admin maupun semua jenis Pegawai) */}
           <Link to="/pengaturan" className={`flex items-center gap-3 p-3 rounded-lg transition-colors mt-4 border-t ${isActive('/pengaturan') ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
             <Settings size={20} /> Pengaturan Akun
           </Link>
         </nav>
       </div>
 
-      {/* Tombol Logout */}
       <div className="p-4 border-t">
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-3 p-3 w-full rounded-lg text-danger hover:bg-red-50 transition-colors font-medium"
+          className="flex items-center gap-3 p-3 w-full rounded-lg text-red-500 hover:bg-red-50 transition-colors font-medium"
         >
           <LogOut size={20} /> Logout
         </button>

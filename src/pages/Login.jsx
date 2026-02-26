@@ -28,27 +28,19 @@ export default function Login() {
 
       const result = await response.json();
 
-      if (response.ok && result.success) {
-        // --- PROSES SETELAH LOGIN SUKSES ---
-        const { user, token } = result.data;
+// Di dalam fungsi handleSubmit Login.jsx
+if (response.ok && result.success) {
+    const { user, token } = result.data;
 
-        // 1. Simpan Token untuk otorisasi API berikutnya
-        localStorage.setItem('auth_token', token);
-        
-        // 2. Simpan Role (Peran) untuk navigasi Sidebar
-        // BE lo pake kolom 'peran' (admin/karyawan)
-        localStorage.setItem('userRole', user.peran);
-        
-        // 3. Simpan NIK KTP untuk sinkronisasi Profil
-        localStorage.setItem('nik_ktp', user.nik_ktp);
-        
-        // 4. Simpan Nama untuk header/display
-        localStorage.setItem('userName', user.name);
+    localStorage.setItem('auth_token', token);
+    
+    // UBAH BAGIAN INI: 
+    // Ambil status_pegawai (Magang/PKWTT/dll) sebagai role navigasi
+    localStorage.setItem('userRole', user.status_pegawai.toLowerCase()); 
+    
+    localStorage.setItem('nik_ktp', user.nik_ktp);
+    navigate('/');
 
-        toast.success(`Selamat datang, ${user.name}!`);
-        
-        // Tendang ke Dashboard Utama
-        navigate('/');
       } else {
         // Handle error seperti: Akun belum aktif atau password salah
         toast.error(result.message || 'Login Gagal. Silakan cek kembali.');
