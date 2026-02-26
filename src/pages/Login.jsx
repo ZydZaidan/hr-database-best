@@ -31,21 +31,20 @@ export default function Login() {
 // Di dalam fungsi handleSubmit Login.jsx
 // Di dalam fungsi handleSubmit Login.jsx pas sukses
 // Di dalam Login.jsx pas login sukses
+// Di dalam Login.jsx
 if (response.ok && result.success) {
     const { user, token } = result.data;
 
     localStorage.setItem('auth_token', token);
     
-    // --- FIX LOGIKA ROLE DI SINI ---
-    // Cek status_pegawai dulu, kalau null/kosong baru ambil dari kolom 'peran'
-    const roleAktif = user.status_pegawai || user.peran;
-    localStorage.setItem('userRole', roleAktif); 
-    // -------------------------------
+    // LOGIKA SAKTI: Kalau status_pegawai kosong (buat Admin), ambil dari 'peran'
+    const roleDinamis = user.status_pegawai || user.peran;
+    localStorage.setItem('userRole', roleDinamis); 
 
     localStorage.setItem('userName', user.name); 
     localStorage.setItem('nik_ktp', user.nik_ktp);
-    
     navigate('/');
+
 
       } else {
         // Handle error seperti: Akun belum aktif atau password salah
