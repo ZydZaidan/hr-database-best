@@ -28,10 +28,6 @@ export default function Login() {
 
       const result = await response.json();
 
-// Di dalam fungsi handleSubmit Login.jsx
-// Di dalam fungsi handleSubmit Login.jsx pas sukses
-// Di dalam Login.jsx pas login sukses
-// Di dalam Login.jsx
 if (response.ok && result.success) {
     const { user, token } = result.data;
 
@@ -40,7 +36,10 @@ if (response.ok && result.success) {
     // LOGIKA SAKTI: Kalau status_pegawai kosong (buat Admin), ambil dari 'peran'
     const roleDinamis = user.peran === 'admin' ? user.peran : user.status_pegawai;
     localStorage.setItem('userRole', roleDinamis); 
-
+    //
+    localStorage.setItem('user_data', JSON.stringify(result.user));
+    localStorage.setItem('nik_ktp', result.user.nik_ktp);
+    //
     localStorage.setItem('userName', user.name); 
     localStorage.setItem('nik_ktp', user.nik_ktp);
     navigate('/');
