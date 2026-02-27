@@ -256,12 +256,12 @@ export default function AddEmployee() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Kontak Darurat (Nama)</label>
-                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nama" />
+                    <label className="block text-sm font-medium mb-1">Kontak Darurat</label>
+                    <input {...register('emergency_contact_nama')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="+62" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Hubungan</label>
-                    <input {...register('emergency_contact_hubungan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Ayah/Ibu/Istri" />
+                    <label className="block text-sm font-medium mb-1">Nama(Hubungan)</label>
+                    <input {...register('emergency_contact_hubungan')} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="Nama(Ayah/Ibu/Istri)" />
                   </div>
                 </div>
                 <div className="md:col-span-2">
