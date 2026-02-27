@@ -29,20 +29,20 @@ export default function Login() {
       const result = await response.json();
 
 if (response.ok && result.success) {
-    // 1. Destructuring sesuai format baru BE
-    // Sekarang token, nik_ktp, dan role ada di level yang sama di dalam data
-    const { token, nik_ktp, role, user } = result.data; 
+const { user, token } = result.data; // Destructuring data dari result.data
 
-    // 2. Simpan Token & Identitas
     localStorage.setItem('auth_token', token);
-    localStorage.setItem('nik_ktp', nik_ktp); // NIK langsung dari result.data
-    localStorage.setItem('userRole', role);   // Role langsung dari result.data
-    
-    // 3. Simpan Data User & Nama
     localStorage.setItem('user_data', JSON.stringify(user));
-    localStorage.setItem('userName', user.name); 
+    if (user.nik_ktp) {
+        localStorage.setItem('nik_ktp', user.nik_ktp); // Biar tetep HIJAU
+    }
+    localStorage.setItem('userName', user.name);
+    
+    // Simpan role untuk Sidebar
+    const roleDinamis = user.peran === 'admin' ? user.peran : user.status_pegawai;
+    localStorage.setItem('userRole', roleDinamis); 
 
-    toast.success('Login Berhasil! Selamat Datang.');
+    toast.success('Login Berhasil!');
     navigate('/');
 
       } else {

@@ -76,12 +76,8 @@ export default function AdminApproval() {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/admin/reject-performance/${id}`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'application/json', 
-          'Accept': 'application/json' 
-        },
-        body: JSON.stringify({ note: reason })
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
       });
 
       if (response.ok) {
@@ -223,11 +219,8 @@ return (
                     </td>
                     <td className="px-6 py-4">
                       <div className="bg-blue-50 p-2 rounded-lg text-[10px] text-blue-700 font-bold inline-block border border-blue-100">
-                      {/* Tampilkan field apa saja yang diubah jika data tersedia */}
-                      {item.proposed_data ? 
-                        Object.keys(item.proposed_data).filter(k => k !== 'nik_ktp').join(', ').toUpperCase() 
-                        : "Usulan Perubahan Profil"}
-                        </div>
+                        Usulan Perubahan Profil
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <button onClick={() => handleApproveData(item.id, item.nama)} className="p-2.5 text-white bg-green-500 rounded-xl hover:bg-green-600 shadow-sm active:scale-95 transition-all">
