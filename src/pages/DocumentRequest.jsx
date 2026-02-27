@@ -8,38 +8,37 @@ export default function DocumentRequest() {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const nikKtp = localStorage.getItem('nik_ktp');
   const token = localStorage.getItem('auth_token');
 
   // ==========================================
-  // 1. FUNGSI AMBIL RIWAYAT (Sesuai IzinController@historySurat)
+  // 1. FUNGSI AMBIL RIWAYAT
   // ==========================================
   const fetchRiwayat = useCallback(async () => {
-  setIsLoading(true);
-  try {
-    const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/history-surat`, {
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://absensi-backend-production-6002.up.railway.app/api/history-surat`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setRequests(result.data); 
       }
-    });
-    const result = await response.json();
-    if (response.ok && result.success) {
-      setRequests(result.data); 
+    } catch (error) {
+      console.error("Gagal memuat riwayat:", error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Gagal memuat riwayat:", error);
-  } finally {
-    setIsLoading(false);
-  }
-}, [token]);
+  }, [token]);
 
   useEffect(() => {
     fetchRiwayat();
   }, [fetchRiwayat]);
 
   // ==========================================
-  // 2. FUNGSI KIRIM PENGAJUAN (Sesuai IzinController@storeSurat)
+  // 2. FUNGSI KIRIM PENGAJUAN
   // ==========================================
   const onSubmit = async (data) => {
     const loadingToast = toast.loading('Mengirim pengajuan...');
@@ -52,9 +51,7 @@ export default function DocumentRequest() {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          // Field wajib sesuai validasi BE: SKP, MAGANG, atau CV
           jenis_surat: data.jenisSurat, 
-          // Input FE 'keperluan' dikirim sebagai 'alasan' agar BE simpan ke admin_note
           alasan: data.keperluan 
         })
       });
@@ -64,9 +61,8 @@ export default function DocumentRequest() {
       if (response.ok && result.success) {
         toast.success(result.message, { id: loadingToast });
         reset();
-        fetchRiwayat(); // Refresh tabel setelah kirim
+        fetchRiwayat();
       } else {
-        // Tampilkan error spesifik dari BE (misal: NIK KTP kosong)
         toast.error(result.message || 'Gagal mengirim pengajuan', { id: loadingToast });
       }
     } catch {
@@ -75,15 +71,11 @@ export default function DocumentRequest() {
   };
 
   // ==========================================
-  // 3. FUNGSI DOWNLOAD (Link Cetak Surat di BE)
+  // 3. FUNGSI DOWNLOAD (Update Sesuai Rute BE Baru)
   // ==========================================
-  const handleDownload = (jenisSurat) => {
-    // Sesuaikan endpoint berdasarkan jenis surat
-    let endpoint = 'download-cv'; 
-    if (jenisSurat === 'SKP') endpoint = 'download-skp';
-    if (jenisSurat === 'MAGANG') endpoint = 'download-magang';
-
-    const downloadUrl = `https://absensi-backend-production-6002.up.railway.app/api/karyawan/${endpoint}/${nikKtp}`;
+  // Sekarang pakai ID surat, bukan NIK
+  const handleDownload = (idSurat) => {
+    const downloadUrl = `https://absensi-backend-production-6002.up.railway.app/api/admin/cetak-surat/${idSurat}`;
     window.open(downloadUrl, '_blank');
   };
 
@@ -134,18 +126,18 @@ export default function DocumentRequest() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-6 border-b flex justify-between items-center">
+        <div className="p-6 border-b flex justify-between items-center bg-gray-50">
           <h3 className="text-lg font-bold text-gray-800">Riwayat Pengajuan</h3>
           {isLoading && <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 font-bold border-b">
+            <thead className="bg-white text-gray-600 font-bold border-b">
               <tr>
                 <th className="px-6 py-4">Tanggal</th>
                 <th className="px-6 py-4">Jenis Surat</th>
                 <th className="px-6 py-4">Keperluan</th>
-                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
@@ -154,19 +146,22 @@ export default function DocumentRequest() {
                 <tr><td colSpan="5" className="text-center py-10 text-gray-400 italic">Belum ada riwayat pengajuan.</td></tr>
               ) : (
                 requests.map((req) => (
-                  <tr key={req.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-500">
-                      {req.created_at ? new Date(req.created_at).toLocaleDateString('id-ID') : '-'}
+                  <tr key={req.id} className="hover:bg-blue-50/20">
+                    <td className="px-6 py-4 font-medium text-gray-600">
+                      {/* Tampilkan langsung karena BE sudah memformatnya */}
+                      {req.created_at || '-'}
                     </td>
                     <td className="px-6 py-4 text-gray-800 font-bold">{req.jenis_surat}</td>
-                    {/* Mengambil alasan dari kolom admin_note sesuai storeSurat di BE */}
-                    <td className="px-6 py-4 text-gray-600 italic">{req.admin_note || '-'}</td>
-                    <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
+                    <td className="px-6 py-4 text-gray-600 italic">
+                      {req.alasan || req.admin_note || '-'}
+                    </td>
+                    <td className="px-6 py-4 flex justify-center"><StatusBadge status={req.status} /></td>
                     <td className="px-6 py-4 text-center">
                       {req.status?.toLowerCase() === 'approved' && (
                         <button 
-                          onClick={() => handleDownload(req.jenis_surat)}
-                          className="flex items-center gap-1 mx-auto px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-600 hover:text-white transition-all text-xs font-bold shadow-sm"
+                          /* Sekarang oper ID surat, bukan jenisnya */
+                          onClick={() => handleDownload(req.id)}
+                          className="flex items-center justify-center gap-2 mx-auto px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-600 hover:text-white transition-all text-xs font-bold shadow-sm"
                         >
                           <Download size={14}/> Unduh PDF
                         </button>

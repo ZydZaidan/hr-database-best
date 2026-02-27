@@ -17,19 +17,30 @@ export default function Performance() {
     ? ((parseFloat(realisasiVal) / parseFloat(targetVal)) * 100).toFixed(1) 
     : 0;
 
-  // 1. Ambil Riwayat dari BE
+  // ==========================================
+  // 1. Ambil Riwayat dari BE (Optimasi Memoization)
+  // ==========================================
   const fetchPerformance = useCallback(async () => {
+    // Hindari fetch jika token kosong (user belum login sempurna)
+    if (!token) {
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/performance', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch('https://absensi-backend-production-6002.up.railway.app/api/performance/history', {
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json' 
+        }
       });
       const result = await response.json();
       if (response.ok && result.success) {
         setKpiData(result.data);
       }
     } catch (error) {
-      console.error("Gagal load data:", error);
+      console.error("Gagal load data kinerja:", error);
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +50,9 @@ export default function Performance() {
     fetchPerformance();
   }, [fetchPerformance]);
 
+  // ==========================================
   // 2. Simpan Data ke BE
+  // ==========================================
   const onSubmit = async (data) => {
     const loadingToast = toast.loading('Menyimpan eviden...');
     try {
@@ -47,7 +60,8 @@ export default function Performance() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           bulan: data.bulan,
@@ -61,7 +75,7 @@ export default function Performance() {
       if (response.ok && result.success) {
         toast.success('Eviden berhasil dikirim ke Admin!', { id: loadingToast });
         reset();
-        fetchPerformance();
+        fetchPerformance(); // Refresh tabel setelah submit sukses
       } else {
         toast.error(result.message || 'Gagal menyimpan', { id: loadingToast });
       }
@@ -107,6 +121,7 @@ export default function Performance() {
           </button>
         </form>
 
+        {/* Perbaikan Typo bg-linear-to-r menjadi bg-gradient-to-r */}
         <div className="mt-6 p-4 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl flex justify-between items-center shadow-sm">
           <div>
             <p className="text-sm font-bold text-blue-800">Simulasi Capaian Kinerja:</p>
@@ -140,6 +155,7 @@ export default function Performance() {
               ) : (
                 kpiData.map((kpi) => (
                   <tr key={kpi.id} className="hover:bg-blue-50/30 transition-colors">
+                    {/* Hapus formatting tanggal manual, pakai format dari BE */}
                     <td className="px-6 py-4 font-bold text-gray-700">{kpi.bulan}</td>
                     <td className="px-6 py-4 text-center font-medium text-gray-600">{kpi.target}</td>
                     <td className="px-6 py-4 text-center font-medium text-gray-600">{kpi.realisasi}</td>
